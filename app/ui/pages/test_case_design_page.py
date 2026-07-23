@@ -4,8 +4,10 @@ from pathlib import Path
 
 import customtkinter as ctk
 
-from app.services.bruno_runner_service import parsear_archivo_bru
+from app.services.bruno_runner_service import BrunoExecutionError, ejecutar_request_bruno_preview, parsear_archivo_bru
+from app.services.jira_playwright_service import JiraPlaywrightRuntimeError, construir_payload_planning_desde_crq, lanzar_automatizacion_jira
 from app.services.planning_service import cargar_planning_crq, guardar_planning_crq
+from app.ui.components.message_box import MessageBox
 from app.ui.pages.base_page import BasePage
 from app.ui.theme.colors import ACCENT_SOFT, BACKGROUND, BORDER, ERROR, ERROR_SOFT, PRIMARY, PRIMARY_LIGHT, PRIMARY_SOFT, SUCCESS, SUCCESS_SOFT, SURFACE, SURFACE_ALT, TEXT_MUTED, TEXT_PRIMARY, TEXT_SECONDARY, WARNING_SOFT
 from app.ui.theme.dimensions import PAGE_HORIZONTAL_PADDING
@@ -36,6 +38,8 @@ class TestCaseDesignPage(BasePage):
         self.case_name_var = ctk.StringVar(value="")
         self.request_value_var = ctk.StringVar(value="")
         self.actual_value_var = ctk.StringVar(value="")
+        self.live_response_job = None
+        self.live_response_result = None
         super().__init__(parent, app)
 
 
@@ -128,8 +132,8 @@ class TestCaseDesignPage(BasePage):
         live.pack(fill="both", expand=True, padx=18, pady=18)
         live.grid_columnconfigure(0, weight=1, uniform="live")
         live.grid_columnconfigure(1, weight=1, uniform="live")
-        self.body_template_text = self.crear_text_panel(live, 0, "Body Bruno base editable", "Este machote se toma de la request Bruno actual y se actualiza con el valor del caso.", WARNING_SOFT, 320, True)
-        self.body_preview_text = self.crear_text_panel(live, 1, "Preview del body para este caso", "Se recalcula automáticamente usando el path inferido del campo.", ACCENT_SOFT, 320, False)
+        self.body_template_text = self.crear_text_panel(live, 0, "Body Bruno base editable", "Este machote se toma de la request Bruno actual y puedes editarlo libremente antes de ejecutar la request.", WARNING_SOFT, 320, True)
+        self.response_preview_text = self.crear_text_panel(live, 1, "Respuesta real de la request", "Se refresca con el body actual y resalta el campo objetivo dentro de la respuesta JSON.", ACCENT_SOFT, 320, False)
 
         response_card = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
         response_card.pack(fill="both", expand=True, pady=(0, 12))
@@ -137,7 +141,7 @@ class TestCaseDesignPage(BasePage):
         response.pack(fill="both", expand=True, padx=18, pady=18)
         response.grid_columnconfigure(0, weight=1, uniform="resp")
         response.grid_columnconfigure(1, weight=1, uniform="resp")
-        self.response_value_text = self.crear_text_panel(response, 0, "Valor base observado en response", "Sirve como referencia inicial; el valor actual lo capturas manualmente arriba.", SURFACE_ALT, 190, False)
+        self.response_value_text = self.crear_text_panel(response, 0, "Detalle de ejecución", "Aquí verás estado HTTP, tiempo y el valor objetivo encontrado en la respuesta real.", SURFACE_ALT, 190, False)
         self.action_text = self.crear_text_panel(response, 1, "Action del test", "Aquí se documenta el escenario y la expectativa funcional del test.", SURFACE_ALT, 190, True)
 
         footer = ctk.CTkFrame(self.workspace, fg_color="transparent")
@@ -384,13 +388,12 @@ class TestCaseDesignPage(BasePage):
         actual_value = self.actual_value_var.get().strip()
         comparison_operator = self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
         expected_value = self.construir_valor_esperado(request_value, comparison_operator)
-        preview = self.construir_body_preview(body_template, response_path, request_value)
-        self.reemplazar_texto(self.body_preview_text, preview, False)
         observed = self.obtener_valor_desde_path(self.response_data, response_path)
         observed_text = self.valor_a_texto(observed)
         self.expected_value_label.configure(text=expected_value or "Sin definir")
-        self.reemplazar_texto(self.response_value_text, f"Path: {response_path}\n\nValor base observado: {observed_text or 'Sin dato'}\n\nCondición: {comparison_operator}\nResultado esperado: {expected_value or 'Sin definir'}", False)
+        self.reemplazar_texto(self.response_value_text, f"Path: {response_path}\n\nValor base observado: {observed_text or 'Sin dato'}\n\nCondición: {comparison_operator}\nResultado esperado: {expected_value or 'Sin definir'}\n\nEstado request: pendiente", False)
         self.actualizar_estado_comparacion(actual_value, expected_value, comparison_operator)
+        self.programar_refresh_response()
 
 
     def construir_body_preview(self, body_template, request_path, request_value):
@@ -403,6 +406,91 @@ class TestCaseDesignPage(BasePage):
         if request_path:
             self.asignar_valor_en_path(data, request_path, self.coercer_valor(request_value))
         return json.dumps(data, indent=4, ensure_ascii=False)
+
+
+    def programar_refresh_response(self):
+        if self.live_response_job is not None:
+            try:
+                self.after_cancel(self.live_response_job)
+            except Exception:
+                pass
+        self.live_response_job = self.after(550, self.ejecutar_refresh_response)
+
+
+    def ejecutar_refresh_response(self):
+        self.live_response_job = None
+        entry = self.obtener_test_actual()
+        if not entry:
+            return
+
+        response_path = entry["response_field_path"]
+        body_template = self.body_template_text.get("1.0", "end").strip() or self.base_body_template
+        request_value = self.request_value_var.get().strip()
+
+        try:
+            body_ejecutable = self.construir_body_preview(body_template, response_path, request_value)
+            resultado = ejecutar_request_bruno_preview(self.request_info, body_override_text=body_ejecutable)
+            self.live_response_result = resultado
+            response_json = resultado.get("response", {})
+            target_value = self.obtener_valor_desde_path(response_json, response_path)
+            target_text = self.valor_a_texto(target_value) or "Sin dato"
+            status = resultado.get("status_code", "-")
+            reason = resultado.get("reason", "")
+            elapsed_ms = resultado.get("elapsed_ms", "-")
+            self.render_response_json(response_json, response_path)
+            self.reemplazar_texto(
+                self.response_value_text,
+                (
+                    f"Path: {response_path}\n\n"
+                    f"HTTP: {status} {reason}\n"
+                    f"Tiempo: {elapsed_ms} ms\n\n"
+                    f"Campo objetivo: {self.obtener_ultima_clave_path(response_path)}\n"
+                    f"Valor encontrado: {target_text}"
+                ),
+                False
+            )
+        except BrunoExecutionError as error:
+            self.live_response_result = {"error": str(error)}
+            self.reemplazar_texto(self.response_preview_text, str(error), False)
+            self.reemplazar_texto(
+                self.response_value_text,
+                (
+                    f"Path: {response_path}\n\n"
+                    "HTTP: error\n"
+                    "Tiempo: -\n\n"
+                    f"Detalle: {error}"
+                ),
+                False
+            )
+
+
+    def render_response_json(self, response_json, response_path):
+        try:
+            content = json.dumps(response_json, indent=4, ensure_ascii=False)
+        except TypeError:
+            content = self.valor_a_texto(response_json)
+
+        field_name = self.obtener_ultima_clave_path(response_path)
+        self.reemplazar_texto(self.response_preview_text, content, False)
+
+        try:
+            self.response_preview_text.configure(state="normal")
+            self.response_preview_text.tag_delete("target_key")
+            self.response_preview_text.tag_config("target_key", background="#FFF0B3", foreground="#222222")
+
+            patron = f'"{field_name}"'
+            start = "1.0"
+            while True:
+                match = self.response_preview_text.search(patron, start, stopindex="end")
+                if not match:
+                    break
+                end = f"{match}+{len(patron)}c"
+                self.response_preview_text.tag_add("target_key", match, end)
+                start = end
+
+            self.response_preview_text.configure(state="disabled")
+        except Exception:
+            self.response_preview_text.configure(state="disabled")
 
 
     def asegurar_payload_test(self, entry):
@@ -437,6 +525,23 @@ class TestCaseDesignPage(BasePage):
 
     def finalizar(self):
         self.persistir_test_actual(True)
+        try:
+            payload = construir_payload_planning_desde_crq(
+                self.crq,
+                self.planning_data
+            )
+            payload_path = lanzar_automatizacion_jira(
+                payload
+            )
+            self.planning_data["automation"] = {
+                "last_payload_path": str(payload_path),
+                "state_path": payload.get("state_path", ""),
+                "launched_at": payload_path.stem
+            }
+        except JiraPlaywrightRuntimeError as error:
+            MessageBox(self, str(error), "warning")
+            return
+
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
         self.navigate("crq_detail", crq=self.crq)
 
@@ -485,6 +590,13 @@ class TestCaseDesignPage(BasePage):
             return "{\n\n}"
         content = str(definition.get("body", {}).get("content", "")).strip()
         return content or "{\n\n}"
+
+
+    def obtener_ultima_clave_path(self, path):
+        segmentos = [segmento.strip() for segmento in str(path or "").split(".") if segmento.strip()]
+        if not segmentos:
+            return ""
+        return segmentos[-1].replace("[]", "")
 
 
     def construir_response_path(self, object_path, field):

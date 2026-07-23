@@ -250,7 +250,8 @@ class HomePage(BasePage):
                 crq_data,
                 self.abrir_crq,
                 self.eliminar_crq,
-                self.agregar_pruebas
+                self.agregar_pruebas,
+                self.probar_resultados
             )
 
 
@@ -309,6 +310,17 @@ class HomePage(BasePage):
 
         self.navigate(
             "add_tests",
+            crq=crq
+        )
+
+
+    def probar_resultados(
+        self,
+        crq
+    ):
+
+        self.navigate(
+            "test_execution",
             crq=crq
         )
 

@@ -371,6 +371,35 @@ def ejecutar_request_bruno_real(request_info):
             " | ".join(errores)
         )
 
+
+def ejecutar_request_bruno_preview(
+    request_info,
+    body_override_text=None
+):
+
+    config = obtener_configuracion_bruno()
+    disponible, motivo = puede_ejecutar_bruno_real(
+        request_info
+    )
+
+    if not disponible:
+
+        raise BrunoExecutionError(
+            motivo
+        )
+
+    contexto = construir_contexto_bruno(
+        request_info
+    )
+
+    return ejecutar_request_desde_bru(
+        request_info,
+        contexto,
+        config,
+        body_override_text=body_override_text,
+        include_http_metadata=True
+    )
+
     response_json = resolver_response_real(
         config,
         contexto,
@@ -451,7 +480,9 @@ def resolver_response_real(
 def ejecutar_request_desde_bru(
     request_info,
     contexto,
-    config
+    config,
+    body_override_text=None,
+    include_http_metadata=False
 ):
 
     request_path = resolver_ruta_request(
@@ -506,13 +537,17 @@ def ejecutar_request_desde_bru(
         "body",
         {}
     )
-    body_text = resolver_valor_bru(
-        body_info.get(
-            "content",
-            ""
-        ),
-        "body"
-    ) if body_info else ""
+    body_text = str(
+        body_override_text
+    ) if body_override_text is not None else (
+        resolver_valor_bru(
+            body_info.get(
+                "content",
+                ""
+            ),
+            "body"
+        ) if body_info else ""
+    )
 
     request_kwargs = {
         "method": method,
@@ -584,7 +619,19 @@ def ejecutar_request_desde_bru(
 
     try:
 
-        return response.json()
+        response_json = response.json()
+
+        if include_http_metadata:
+
+            return {
+                "status_code": response.status_code,
+                "reason": response.reason,
+                "headers": dict(response.headers),
+                "elapsed_ms": int(response.elapsed.total_seconds() * 1000),
+                "response": response_json
+            }
+
+        return response_json
 
     except ValueError as error:
 

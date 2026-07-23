@@ -202,7 +202,7 @@ class TestPlanDesignPage(BasePage):
         plan.setdefault(
             "issue_payload",
             {
-                "summary": f"[CRQ-{self.crq.get('crq', '-')}] {service_name} | {version_label} | {plan.get('tipo_nombre', 'Plan')}",
+                "summary": f"[{self.crq.get('crq', '-')}] {service_name} | {version_label} | {plan.get('tipo_nombre', 'Plan')}",
                 "description": (
                     f"Test Plan de tipo {plan.get('tipo_nombre', 'Plan')} para el servicio {service_name} {version_label}. "
                     f"Objetivo del cambio: {objetivo}. Estrategia inicial: {plan.get('estrategia', '-') }"
