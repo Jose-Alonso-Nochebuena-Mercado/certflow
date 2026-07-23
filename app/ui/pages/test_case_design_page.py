@@ -15,7 +15,7 @@ from app.ui.theme.styles import SECONDARY_BUTTON, SOFT_CARD_STYLE
 from app.ui.theme.typography import BODY, SMALL, SUBTITLE, TITLE, get_font
 
 
-CASE_TYPES = ["Happy path", "Negative", "Boundary", "Null or empty", "Custom"]
+CASE_TYPES = ["Happy path", "Escenario alterno", "Error"]
 COMPARISON_OPERATORS = ["Igual", "Diferente", "Nulo", "No nulo", "Contiene"]
 
 
@@ -65,7 +65,7 @@ class TestCaseDesignPage(BasePage):
         hero = ctk.CTkFrame(self, fg_color="transparent")
         hero.pack(fill="x", padx=PAGE_HORIZONTAL_PADDING, pady=(24, 14))
         ctk.CTkLabel(hero, text="Diseño de Tests", font=get_font(TITLE), text_color=PRIMARY).pack()
-        ctk.CTkLabel(hero, text=f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · Aquí defines la base común de Tests, compartida entre Integrado y Aceptación.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
+        ctk.CTkLabel(hero, text=f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · Aquí defines los Tests del plan actual. Los comunes se comparten y los extras del plan se conservan solo donde aplican.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
 
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True, padx=PAGE_HORIZONTAL_PADDING, pady=(0, 18))
@@ -80,7 +80,7 @@ class TestCaseDesignPage(BasePage):
         self.summary_card.pack(fill="x", pady=(0, 12))
         self.summary_title = ctk.CTkLabel(self.summary_card, text="Selecciona un test", font=get_font(SUBTITLE), text_color=PRIMARY)
         self.summary_title.pack(anchor="w", padx=22, pady=(18, 6))
-        self.summary_hint = ctk.CTkLabel(self.summary_card, text="La ruta del campo se infiere automáticamente. Aquí defines escenario, valor en request, condición y valor actual para validar en tiempo real.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=760)
+        self.summary_hint = ctk.CTkLabel(self.summary_card, text="La ruta del campo se infiere automáticamente. Aquí defines escenario, valor en request, condición y validación en tiempo real sobre la respuesta exacta del path objetivo.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=760)
         self.summary_hint.pack(anchor="w", padx=22, pady=(0, 18))
 
         self.payload_card = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
@@ -212,7 +212,7 @@ class TestCaseDesignPage(BasePage):
 
     def construir_test_entries(self):
         resultado = []
-        plan = self.obtener_plan_base_comun()
+        plan = self.obtener_plan_visible()
         if not plan:
             return resultado
         for test_set in plan.get("test_sets", []):
@@ -234,8 +234,8 @@ class TestCaseDesignPage(BasePage):
     def render_navigation(self):
         for widget in self.navigation_panel.winfo_children():
             widget.destroy()
-        ctk.CTkLabel(self.navigation_panel, text="Tests comunes", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
-        ctk.CTkLabel(self.navigation_panel, text="Cada fila representa un campo dentro de un Test Set activo de la base común.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
+        ctk.CTkLabel(self.navigation_panel, text="Tests del plan", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
+        ctk.CTkLabel(self.navigation_panel, text="Cada fila representa un campo dentro de un Test Set activo del plan actual. Los sets comunes se sincronizan; los extras se quedan en su plan.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
 
         if not self.test_entries:
             ctk.CTkLabel(self.navigation_panel, text="No hay tests disponibles en la base común. Regresa a Test Sets y activa al menos un set con campos.", font=get_font(BODY), text_color=TEXT_MUTED, wraplength=260, justify="left").pack(anchor="w", padx=16, pady=(0, 16))
@@ -245,7 +245,8 @@ class TestCaseDesignPage(BasePage):
             card = ctk.CTkFrame(self.navigation_panel, fg_color=PRIMARY_SOFT if index == self.selected_test_index else SURFACE_ALT, corner_radius=14, border_width=1, border_color=BORDER)
             card.pack(fill="x", padx=12, pady=(0, 10))
             ctk.CTkButton(card, text=entry["test"].get("field", "Campo"), anchor="w", height=34, fg_color="transparent", hover_color=PRIMARY_SOFT, text_color=PRIMARY, command=lambda current=index: self.seleccionar_test(current)).pack(fill="x", padx=8, pady=(8, 4))
-            ctk.CTkLabel(card, text=entry["test_set"].get("path", "General"), font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=240).pack(anchor="w", padx=12, pady=(0, 8))
+            prefijo = "Extra" if self.es_test_set_plan_specific(entry["test_set"]) else "Común"
+            ctk.CTkLabel(card, text=f"{prefijo} · {entry['test_set'].get('path', 'General')}", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=240).pack(anchor="w", padx=12, pady=(0, 8))
 
 
     def seleccionar_test(self, index, persist_current=True):
@@ -465,28 +466,17 @@ class TestCaseDesignPage(BasePage):
 
 
     def render_response_json(self, response_json, response_path):
-        try:
-            content = json.dumps(response_json, indent=4, ensure_ascii=False)
-        except TypeError:
-            content = self.valor_a_texto(response_json)
-
-        field_name = self.obtener_ultima_clave_path(response_path)
+        content, target_line = self.serializar_json_con_linea_objetivo(response_json, response_path)
         self.reemplazar_texto(self.response_preview_text, content, False)
 
         try:
             self.response_preview_text.configure(state="normal")
-            self.response_preview_text.tag_delete("target_key")
-            self.response_preview_text.tag_config("target_key", background="#FFF0B3", foreground="#222222")
+            self.response_preview_text.tag_delete("target_row")
+            self.response_preview_text.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
 
-            patron = f'"{field_name}"'
-            start = "1.0"
-            while True:
-                match = self.response_preview_text.search(patron, start, stopindex="end")
-                if not match:
-                    break
-                end = f"{match}+{len(patron)}c"
-                self.response_preview_text.tag_add("target_key", match, end)
-                start = end
+            if target_line is not None:
+                self.response_preview_text.tag_add("target_row", f"{target_line}.0", f"{target_line}.end")
+                self.centrar_linea_texto(self.response_preview_text, target_line)
 
             self.response_preview_text.configure(state="disabled")
         except Exception:
@@ -563,17 +553,24 @@ class TestCaseDesignPage(BasePage):
         return self.planning_data.get("plans", [None])[0]
 
 
+    def obtener_plan_visible(self):
+        for plan in self.planning_data.get("plans", []):
+            if self.current_plan_id and plan.get("tipo_id") == self.current_plan_id:
+                return plan
+        return self.obtener_plan_base_comun()
+
+
     def sincronizar_tests_comunes(self):
         base_plan = self.obtener_plan_base_comun()
-        if not base_plan:
+        visible_plan = self.obtener_plan_visible()
+        if not base_plan or not visible_plan:
             return
-        base_sets = deepcopy(base_plan.get("test_sets", []))
+        common_sets = [deepcopy(test_set) for test_set in visible_plan.get("test_sets", []) if not self.es_test_set_plan_specific(test_set)]
         for plan in self.planning_data.get("plans", []):
-            if plan is base_plan:
-                continue
             if plan.get("tipo_id") not in {"integrado", "accepted"}:
                 continue
-            plan["test_sets"] = deepcopy(base_sets)
+            extras = [deepcopy(test_set) for test_set in plan.get("test_sets", []) if self.es_test_set_plan_specific(test_set)]
+            plan["test_sets"] = deepcopy(common_sets) + extras
 
 
     def obtener_body_bruno_base(self):
@@ -597,6 +594,103 @@ class TestCaseDesignPage(BasePage):
         if not segmentos:
             return ""
         return segmentos[-1].replace("[]", "")
+
+
+    def es_test_set_plan_specific(self, test_set):
+        source = dict(test_set.get("source", {}))
+        return bool(source.get("plan_specific"))
+
+
+    def serializar_json_con_linea_objetivo(self, value, target_path):
+        lines = []
+        target_line = None
+
+        def walk(node, indent=0, path=""):
+            nonlocal target_line
+            prefix = "    " * indent
+
+            if isinstance(node, dict):
+                lines.append(f"{prefix}{{")
+                items = list(node.items())
+                for index, (key, child) in enumerate(items):
+                    child_path = f"{path}.{key}" if path else key
+                    suffix = "," if index < len(items) - 1 else ""
+                    child_prefix = "    " * (indent + 1)
+                    if isinstance(child, dict):
+                        lines.append(f'{child_prefix}"{key}": {{')
+                        walk(child, indent + 2, child_path)
+                        lines.append(f'{child_prefix}}}{suffix}')
+                    elif isinstance(child, list):
+                        lines.append(f'{child_prefix}"{key}": [')
+                        walk_list(child, indent + 2, f"{child_path}[]")
+                        lines.append(f'{child_prefix}]{suffix}')
+                    else:
+                        serialized = json.dumps(child, ensure_ascii=False)
+                        lines.append(f'{child_prefix}"{key}": {serialized}{suffix}')
+                        if child_path == target_path:
+                            target_line = len(lines)
+                lines.append(f"{prefix}}}")
+                return
+
+            lines.append(f"{prefix}{json.dumps(node, ensure_ascii=False)}")
+
+        def walk_list(node, indent=0, path=""):
+            nonlocal target_line
+            prefix = "    " * indent
+            for index, child in enumerate(node):
+                suffix = "," if index < len(node) - 1 else ""
+                if isinstance(child, dict):
+                    lines.append(f"{prefix}{{")
+                    items = list(child.items())
+                    for child_index, (key, grandchild) in enumerate(items):
+                        child_path = f"{path}.{key}" if path else key
+                        child_suffix = "," if child_index < len(items) - 1 else ""
+                        child_prefix = "    " * (indent + 1)
+                        if isinstance(grandchild, dict):
+                            lines.append(f'{child_prefix}"{key}": {{')
+                            walk(grandchild, indent + 2, child_path)
+                            lines.append(f'{child_prefix}}}{child_suffix}')
+                        elif isinstance(grandchild, list):
+                            lines.append(f'{child_prefix}"{key}": [')
+                            walk_list(grandchild, indent + 2, f"{child_path}[]")
+                            lines.append(f'{child_prefix}]{child_suffix}')
+                        else:
+                            serialized = json.dumps(grandchild, ensure_ascii=False)
+                            lines.append(f'{child_prefix}"{key}": {serialized}{child_suffix}')
+                            if child_path == target_path:
+                                target_line = len(lines)
+                    lines.append(f"{prefix}}}{suffix}")
+                elif isinstance(child, list):
+                    lines.append(f"{prefix}[")
+                    walk_list(child, indent + 1, f"{path}[]")
+                    lines.append(f"{prefix}]{suffix}")
+                else:
+                    lines.append(f"{prefix}{json.dumps(child, ensure_ascii=False)}{suffix}")
+                    if path == target_path:
+                        target_line = len(lines)
+
+        if isinstance(value, list):
+            lines.append("[")
+            walk_list(value, 1, "[]")
+            lines.append("]")
+        elif isinstance(value, dict):
+            walk(value, 0, "")
+        else:
+            lines.append(json.dumps(value, ensure_ascii=False))
+
+        return "\n".join(lines), target_line
+
+
+    def centrar_linea_texto(self, textbox, line_number):
+        try:
+            total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
+            target = max(0, line_number - 8)
+            textbox.yview_moveto(min(1.0, target / total_lines))
+        except Exception:
+            try:
+                textbox.see(f"{line_number}.0")
+            except Exception:
+                pass
 
 
     def construir_response_path(self, object_path, field):

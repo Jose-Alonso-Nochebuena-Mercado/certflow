@@ -6,8 +6,10 @@ import customtkinter as ctk
 
 try:
     from PIL import ImageGrab
+    from PIL import Image
 except Exception:
     ImageGrab = None
+    Image = None
 
 from app.services.bruno_runner_service import BrunoExecutionError, ejecutar_request_bruno_preview, parsear_archivo_bru
 from app.services.crq_service import construir_nombre_archivo_crq
@@ -33,6 +35,7 @@ class TestExecutionPage(BasePage):
         self.selected_index = None
         self.current_result = None
         self.screenshot_dir = None
+        self.bruno_logo = None
         super().__init__(parent, app)
 
 
@@ -71,7 +74,7 @@ class TestExecutionPage(BasePage):
         hero = ctk.CTkFrame(self, fg_color="transparent")
         hero.pack(fill="x", padx=PAGE_HORIZONTAL_PADDING, pady=(24, 14))
         ctk.CTkLabel(hero, text="Prueba y Capturas", font=get_font(TITLE), text_color=PRIMARY).pack()
-        ctk.CTkLabel(hero, text=f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · Ejecuta cada caso con una vista tipo Bruno y guarda capturas PNG para revisión manual.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
+        ctk.CTkLabel(hero, text=f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · Ejecuta cada caso con una vista tipo Bruno y guarda capturas PNG que simulen una sesión real de Bruno.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
 
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True, padx=PAGE_HORIZONTAL_PADDING, pady=(0, 18))
@@ -89,14 +92,39 @@ class TestExecutionPage(BasePage):
         self.summary_text = ctk.CTkLabel(self.summary_card, text="-", font=get_font(BODY), text_color=TEXT_SECONDARY, justify="left", wraplength=860)
         self.summary_text.pack(anchor="w", padx=22, pady=(0, 18))
 
-        panels = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
-        panels.pack(fill="both", expand=True, pady=(0, 12))
-        content = ctk.CTkFrame(panels, fg_color="transparent")
-        content.pack(fill="both", expand=True, padx=18, pady=18)
-        content.grid_columnconfigure(0, weight=1, uniform="bruno")
-        content.grid_columnconfigure(1, weight=1, uniform="bruno")
-        self.request_text = self.crear_text_panel(content, 0, "Body", "Body ejecutable. Puedes ajustarlo y volver a lanzar el caso actual.", WARNING_SOFT, 360, True)
-        self.response_text = self.crear_text_panel(content, 1, "Response", "Respuesta JSON real de la request. Se resalta la clave objetivo cuando aparece.", ACCENT_SOFT, 360, False)
+        self.capture_surface = ctk.CTkFrame(self.workspace, fg_color="#1E1E1E", corner_radius=14, border_width=1, border_color="#2C2C2C")
+        self.capture_surface.pack(fill="both", expand=True, pady=(0, 12))
+
+        bruno_header = ctk.CTkFrame(self.capture_surface, fg_color="#202020", corner_radius=0)
+        bruno_header.pack(fill="x", padx=0, pady=0)
+        brand = ctk.CTkFrame(bruno_header, fg_color="transparent")
+        brand.pack(side="left", padx=14, pady=10)
+        self.bruno_logo_label = ctk.CTkLabel(brand, text="")
+        self.bruno_logo_label.pack(side="left", padx=(0, 8))
+        ctk.CTkLabel(brand, text="Bruno", font=("Arial", 18, "bold"), text_color="#F5F5F5").pack(side="left")
+        ctk.CTkLabel(bruno_header, text="Production", font=("Arial", 12, "bold"), text_color="#F6B13D", fg_color="#2A241A", corner_radius=12, padx=12, pady=6).pack(side="right", padx=14)
+
+        toolbar = ctk.CTkFrame(self.capture_surface, fg_color="#262626", corner_radius=0)
+        toolbar.pack(fill="x")
+        ctk.CTkLabel(toolbar, text="JsonPlaceholder", font=("Arial", 15, "bold"), text_color="#F5F5F5").pack(side="left", padx=14, pady=10)
+        self.tab_label = ctk.CTkLabel(toolbar, text="POST Runner", font=("Arial", 12, "bold"), text_color="#E0E0E0", fg_color="#343434", corner_radius=8, padx=12, pady=6)
+        self.tab_label.pack(side="left", padx=(6, 0))
+
+        self.request_line = ctk.CTkFrame(self.capture_surface, fg_color="#303030", corner_radius=0)
+        self.request_line.pack(fill="x", padx=14, pady=(12, 10))
+        self.method_label = ctk.CTkLabel(self.request_line, text="POST", font=("Arial", 12, "bold"), text_color="#F0F0F0", fg_color="#3A3A3A", corner_radius=10, padx=10, pady=6)
+        self.method_label.pack(side="left", padx=(10, 8), pady=8)
+        self.url_label = ctk.CTkLabel(self.request_line, text="-", font=("Consolas", 12), text_color="#8AE234", anchor="w")
+        self.url_label.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+        bruno_content = ctk.CTkFrame(self.capture_surface, fg_color="transparent")
+        bruno_content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
+        bruno_content.grid_columnconfigure(0, weight=1, uniform="bruno")
+        bruno_content.grid_columnconfigure(1, weight=1, uniform="bruno")
+        self.request_text = self.crear_bruno_panel(bruno_content, 0, "Body", "JSON", WARNING_SOFT, 390, True)
+        self.response_text = self.crear_bruno_panel(bruno_content, 1, "Response", "JSON", ACCENT_SOFT, 390, False)
+
+        self.cargar_logo_bruno()
 
         bottom = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
         bottom.pack(fill="both", expand=True, pady=(0, 12))
@@ -128,27 +156,47 @@ class TestExecutionPage(BasePage):
         return textbox
 
 
+    def crear_bruno_panel(self, parent, column, title, badge, tint, height, editable):
+        card = ctk.CTkFrame(parent, fg_color="#1F1F1F", corner_radius=12, border_width=1, border_color="#313131")
+        card.grid(row=0, column=column, sticky="nsew", padx=8)
+        card.grid_rowconfigure(2, weight=1)
+        tabs = ctk.CTkFrame(card, fg_color="#1F1F1F")
+        tabs.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 6))
+        ctk.CTkLabel(tabs, text=title, font=("Arial", 13, "bold"), text_color="#F5F5F5").pack(side="left")
+        ctk.CTkLabel(tabs, text=badge, font=("Arial", 11, "bold"), text_color="#F6B13D").pack(side="right")
+        ctk.CTkLabel(card, text="Pretty", font=("Arial", 11), text_color="#BEBEBE").grid(row=1, column=0, sticky="e", padx=12, pady=(0, 8))
+        textbox = ctk.CTkTextbox(card, height=height, corner_radius=0, border_width=0, fg_color="#161616", text_color="#E7E7E7", wrap="word", font=("Consolas", 12))
+        textbox.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        if not editable:
+            textbox.configure(state="disabled")
+        return textbox
+
+
     def construir_execution_entries(self):
         resultado = []
-        plan = self.obtener_plan_base_comun()
-        if not plan:
-            return resultado
-        for test_set in plan.get("test_sets", []):
-            if not test_set.get("enabled", True):
-                continue
-            for test in test_set.get("tests", []):
-                field = str(test.get("field", "")).strip()
-                if not field:
+        firmas = set()
+        for plan in self.planning_data.get("plans", []):
+            for test_set in plan.get("test_sets", []):
+                if not test_set.get("enabled", True):
                     continue
-                draft_cases = list(test.get("draft_cases", [])) or [self.crear_caso_default(test_set, test)]
-                for case_index, case in enumerate(draft_cases, start=1):
-                    resultado.append({
-                        "test_set": test_set,
-                        "test": test,
-                        "case": case,
-                        "case_index": case_index,
-                        "response_field_path": case.get("response_field_path") or self.construir_response_path(test_set.get("path", ""), field)
-                    })
+                for test in test_set.get("tests", []):
+                    field = str(test.get("field", "")).strip()
+                    if not field:
+                        continue
+                    draft_cases = list(test.get("draft_cases", [])) or [self.crear_caso_default(test_set, test)]
+                    for case_index, case in enumerate(draft_cases, start=1):
+                        firma = self.construir_firma_ejecucion(plan, test_set, test, case)
+                        if firma in firmas:
+                            continue
+                        firmas.add(firma)
+                        resultado.append({
+                            "plan": plan,
+                            "test_set": test_set,
+                            "test": test,
+                            "case": case,
+                            "case_index": case_index,
+                            "response_field_path": case.get("response_field_path") or self.construir_response_path(test_set.get("path", ""), field)
+                        })
         return resultado
 
 
@@ -164,7 +212,8 @@ class TestExecutionPage(BasePage):
             card = ctk.CTkFrame(self.navigation_panel, fg_color=PRIMARY_SOFT if index == self.selected_index else SURFACE_ALT, corner_radius=14, border_width=1, border_color=BORDER)
             card.pack(fill="x", padx=12, pady=(0, 10))
             ctk.CTkButton(card, text=label, anchor="w", height=34, fg_color="transparent", hover_color=PRIMARY_SOFT, text_color=PRIMARY, command=lambda current=index: self.seleccionar_entry(current)).pack(fill="x", padx=8, pady=(8, 4))
-            ctk.CTkLabel(card, text=f"{entry['test_set'].get('path', 'General')} · {entry['test'].get('field', 'Campo')}", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=240).pack(anchor="w", padx=12, pady=(0, 8))
+            prefijo = "Extra" if self.es_test_set_plan_specific(entry["test_set"]) else entry["plan"].get("tipo_nombre", "Plan")
+            ctk.CTkLabel(card, text=f"{prefijo} · {entry['test_set'].get('path', 'General')} · {entry['test'].get('field', 'Campo')}", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=240).pack(anchor="w", padx=12, pady=(0, 8))
 
 
     def seleccionar_entry(self, index):
@@ -183,8 +232,10 @@ class TestExecutionPage(BasePage):
         body = self.aplicar_request_value(body, entry["response_field_path"], case.get("request_value", ""))
         self.summary_title.configure(text=case.get("case_name", "Caso"))
         self.summary_text.configure(text=f"Campo objetivo: {entry['response_field_path']}\nCondición: {case.get('comparison_operator', '-')}\nRequest value: {case.get('request_value', '-')}")
+        self.tab_label.configure(text=f"{entry['plan'].get('tipo_nombre', 'Plan')} · {case.get('case_name', 'Runner')}")
         self.reemplazar_texto(self.request_text, body, True)
         self.reemplazar_texto(self.response_text, "Esperando ejecución...", False)
+        self.actualizar_request_metadata()
 
 
     def ejecutar_actual(self):
@@ -244,10 +295,10 @@ class TestExecutionPage(BasePage):
         output_path = output_dir / f"{nombre}.png"
         self.update_idletasks()
         self.update()
-        x = self.winfo_rootx()
-        y = self.winfo_rooty()
-        width = self.winfo_width()
-        height = self.winfo_height()
+        x = self.capture_surface.winfo_rootx()
+        y = self.capture_surface.winfo_rooty()
+        width = self.capture_surface.winfo_width()
+        height = self.capture_surface.winfo_height()
         image = ImageGrab.grab(bbox=(x, y, x + width, y + height))
         image.save(output_path)
         return output_path
@@ -321,25 +372,154 @@ class TestExecutionPage(BasePage):
 
 
     def render_response_json(self, response_json, response_path):
-        content = json.dumps(response_json, indent=4, ensure_ascii=False)
-        field_name = self.obtener_ultima_clave_path(response_path)
+        content, target_line = self.serializar_json_con_linea_objetivo(response_json, response_path)
         self.reemplazar_texto(self.response_text, content, False)
         try:
             self.response_text.configure(state="normal")
-            self.response_text.tag_delete("target_key")
-            self.response_text.tag_config("target_key", background="#FFF0B3", foreground="#222222")
-            pattern = f'"{field_name}"'
-            start = "1.0"
-            while True:
-                match = self.response_text.search(pattern, start, stopindex="end")
-                if not match:
-                    break
-                end = f"{match}+{len(pattern)}c"
-                self.response_text.tag_add("target_key", match, end)
-                start = end
+            self.response_text.tag_delete("target_row")
+            self.response_text.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
+            if target_line is not None:
+                self.response_text.tag_add("target_row", f"{target_line}.0", f"{target_line}.end")
+                self.centrar_linea_texto(self.response_text, target_line)
             self.response_text.configure(state="disabled")
         except Exception:
             self.response_text.configure(state="disabled")
+
+
+    def actualizar_request_metadata(self):
+        bruno_request = dict(self.request_info.get("bruno_request", {}))
+        try:
+            definition = parsear_archivo_bru(Path(str(bruno_request.get("file", "")).strip()))
+            self.method_label.configure(text=str(definition.get("method", "POST")).upper())
+            self.url_label.configure(text=str(definition.get("url", "-")).strip() or "-")
+        except Exception:
+            self.method_label.configure(text="POST")
+            self.url_label.configure(text="-")
+
+
+    def cargar_logo_bruno(self):
+        if Image is None:
+            return
+        image_path = Path(__file__).resolve().parents[1] / "assets" / "bruno.png"
+        if not image_path.exists():
+            return
+        try:
+            image = Image.open(image_path)
+            self.bruno_logo = ctk.CTkImage(light_image=image, dark_image=image, size=(24, 24))
+            self.bruno_logo_label.configure(image=self.bruno_logo)
+        except Exception:
+            pass
+
+
+    def es_test_set_plan_specific(self, test_set):
+        source = dict(test_set.get("source", {}))
+        return bool(source.get("plan_specific"))
+
+
+    def construir_firma_ejecucion(self, plan, test_set, test, case):
+        if self.es_test_set_plan_specific(test_set):
+            return "|".join([
+                str(plan.get("tipo_id", "")),
+                str(test_set.get("path", "")),
+                str(test.get("field", "")),
+                str(case.get("case_name", ""))
+            ])
+        return "|".join([
+            "common",
+            str(test_set.get("path", "")),
+            str(test.get("field", "")),
+            str(case.get("case_name", ""))
+        ])
+
+
+    def serializar_json_con_linea_objetivo(self, value, target_path):
+        lines = []
+        target_line = None
+
+        def walk(node, indent=0, path=""):
+            nonlocal target_line
+            prefix = "    " * indent
+            if isinstance(node, dict):
+                lines.append(f"{prefix}{{")
+                items = list(node.items())
+                for index, (key, child) in enumerate(items):
+                    child_path = f"{path}.{key}" if path else key
+                    suffix = "," if index < len(items) - 1 else ""
+                    child_prefix = "    " * (indent + 1)
+                    if isinstance(child, dict):
+                        lines.append(f'{child_prefix}"{key}": {{')
+                        walk(child, indent + 2, child_path)
+                        lines.append(f'{child_prefix}}}{suffix}')
+                    elif isinstance(child, list):
+                        lines.append(f'{child_prefix}"{key}": [')
+                        walk_list(child, indent + 2, f"{child_path}[]")
+                        lines.append(f'{child_prefix}]{suffix}')
+                    else:
+                        serialized = json.dumps(child, ensure_ascii=False)
+                        lines.append(f'{child_prefix}"{key}": {serialized}{suffix}')
+                        if child_path == target_path:
+                            target_line = len(lines)
+                lines.append(f"{prefix}}}")
+                return
+            lines.append(f"{prefix}{json.dumps(node, ensure_ascii=False)}")
+
+        def walk_list(node, indent=0, path=""):
+            nonlocal target_line
+            prefix = "    " * indent
+            for index, child in enumerate(node):
+                suffix = "," if index < len(node) - 1 else ""
+                if isinstance(child, dict):
+                    lines.append(f"{prefix}{{")
+                    items = list(child.items())
+                    for child_index, (key, grandchild) in enumerate(items):
+                        child_path = f"{path}.{key}" if path else key
+                        child_suffix = "," if child_index < len(items) - 1 else ""
+                        child_prefix = "    " * (indent + 1)
+                        if isinstance(grandchild, dict):
+                            lines.append(f'{child_prefix}"{key}": {{')
+                            walk(grandchild, indent + 2, child_path)
+                            lines.append(f'{child_prefix}}}{child_suffix}')
+                        elif isinstance(grandchild, list):
+                            lines.append(f'{child_prefix}"{key}": [')
+                            walk_list(grandchild, indent + 2, f"{child_path}[]")
+                            lines.append(f'{child_prefix}]{child_suffix}')
+                        else:
+                            serialized = json.dumps(grandchild, ensure_ascii=False)
+                            lines.append(f'{child_prefix}"{key}": {serialized}{child_suffix}')
+                            if child_path == target_path:
+                                target_line = len(lines)
+                    lines.append(f"{prefix}}}{suffix}")
+                elif isinstance(child, list):
+                    lines.append(f"{prefix}[")
+                    walk_list(child, indent + 1, f"{path}[]")
+                    lines.append(f"{prefix}]{suffix}")
+                else:
+                    lines.append(f"{prefix}{json.dumps(child, ensure_ascii=False)}{suffix}")
+                    if path == target_path:
+                        target_line = len(lines)
+
+        if isinstance(value, list):
+            lines.append("[")
+            walk_list(value, 1, "[]")
+            lines.append("]")
+        elif isinstance(value, dict):
+            walk(value, 0, "")
+        else:
+            lines.append(json.dumps(value, ensure_ascii=False))
+
+        return "\n".join(lines), target_line
+
+
+    def centrar_linea_texto(self, textbox, line_number):
+        try:
+            total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
+            target = max(0, line_number - 8)
+            textbox.yview_moveto(min(1.0, target / total_lines))
+        except Exception:
+            try:
+                textbox.see(f"{line_number}.0")
+            except Exception:
+                pass
 
 
     def obtener_entry_actual(self):
