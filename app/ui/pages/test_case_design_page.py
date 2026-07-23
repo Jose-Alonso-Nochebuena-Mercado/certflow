@@ -369,7 +369,7 @@ class TestCaseDesignPage(BasePage):
             "comparison_operator": COMPARISON_OPERATORS[0],
             "actual_value": observed_text,
             "expected_value": observed_text,
-            "action": self.construir_action(response_path, observed_text, observed_text, observed_text, COMPARISON_OPERATORS[0], self.base_body_template),
+            "action": self.construir_action(response_path, observed_text, observed_text, observed_text, COMPARISON_OPERATORS[0], self.base_body_template, CASE_TYPES[0]),
             "body_template": self.base_body_template
         }
 
@@ -395,18 +395,46 @@ class TestCaseDesignPage(BasePage):
         cases = self.asegurar_casos(entry)
         response_path = entry["response_field_path"]
         body_template = self.body_template_text.get("1.0", "end").strip() or self.base_body_template
+        case_type = self.case_type_var.get().strip() or CASE_TYPES[0]
         comparison_operator = self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
-        expected_value = self.construir_valor_esperado(self.request_value_var.get().strip(), comparison_operator)
-        action_text = self.action_text.get("1.0", "end").strip() or self.construir_action(response_path, self.request_value_var.get().strip(), self.actual_value_var.get().strip(), expected_value, comparison_operator, body_template)
+        request_value = self.request_value_var.get().strip()
+        actual_value = self.actual_value_var.get().strip()
+        expected_value = self.construir_valor_esperado(request_value, comparison_operator)
+        existing_case = cases[self.selected_case_index] if self.selected_case_index < len(cases) else {}
+        previous_generated_action = self.construir_action(
+            response_path,
+            existing_case.get("request_value", ""),
+            existing_case.get("actual_value", ""),
+            existing_case.get("expected_value", ""),
+            existing_case.get("comparison_operator", comparison_operator),
+            existing_case.get("body_template", body_template),
+            existing_case.get("case_type", case_type)
+        )
+        current_generated_action = self.construir_action(
+            response_path,
+            request_value,
+            actual_value,
+            expected_value,
+            comparison_operator,
+            body_template,
+            case_type
+        )
+        typed_action = self.action_text.get("1.0", "end").strip()
+        stored_action = str(existing_case.get("action", "")).strip()
+
+        if not typed_action or typed_action == stored_action or typed_action == previous_generated_action:
+            action_text = current_generated_action
+        else:
+            action_text = typed_action
 
         cases[self.selected_case_index] = {
-            "case_type": self.case_type_var.get().strip() or CASE_TYPES[0],
+            "case_type": case_type,
             "case_name": self.case_name_var.get().strip() or f"{entry['test'].get('field', 'Campo')} | Caso {self.selected_case_index + 1}",
             "request_field_path": response_path,
-            "request_value": self.request_value_var.get().strip(),
+            "request_value": request_value,
             "response_field_path": response_path,
             "comparison_operator": comparison_operator,
-            "actual_value": self.actual_value_var.get().strip(),
+            "actual_value": actual_value,
             "expected_value": expected_value,
             "action": action_text,
             "body_template": body_template
@@ -561,20 +589,55 @@ class TestCaseDesignPage(BasePage):
         version = str(self.request_info.get("version_label", "Sin versión")).strip() or "Sin versión"
         object_path = self.formatear_path(test_set.get("path", "General"))
         field_name = test.get("field", "Campo")
-        case_type = self.case_type_var.get().strip() or CASE_TYPES[0]
-        test.setdefault(
+        default_summary = self.construir_summary_test_base(channel, service, version, object_path, field_name)
+        default_description = self.construir_descripcion_test_base(field_name, object_path)
+
+        payload = test.setdefault(
             "issue_payload",
             {
-                "summary": f"[{channel}-Global] {service} | {version} | {object_path} | {field_name} | {case_type} | Global/Esperado",
-                "description": (
-                    f"Validación del campo {field_name} en {object_path}. "
-                    f"La prueba corresponde al escenario {case_type.lower()} y usa la request Bruno seleccionada como referencia funcional."
-                ),
+                "summary": default_summary,
+                "description": default_description,
                 "actions": test.get("actions", ""),
                 "repository_path": self.repository_path_default
             }
         )
-        return test["issue_payload"]
+
+        legacy_summaries = {
+            f"[{channel}-Global] {service} | {version} | {object_path} | {field_name} | {case_type} | Global/Esperado"
+            for case_type in CASE_TYPES
+        }
+        legacy_descriptions = {
+            (
+                f"Validación del campo {field_name} en {object_path}. "
+                f"La prueba corresponde al escenario {case_type.lower()} y usa la request Bruno seleccionada como referencia funcional."
+            )
+            for case_type in CASE_TYPES
+        }
+
+        current_summary = str(payload.get("summary", "")).strip()
+        current_description = str(payload.get("description", "")).strip()
+
+        if not current_summary or current_summary in legacy_summaries:
+            payload["summary"] = default_summary
+
+        if not current_description or current_description in legacy_descriptions:
+            payload["description"] = default_description
+
+        if not str(payload.get("repository_path", "")).strip():
+            payload["repository_path"] = self.repository_path_default
+
+        return payload
+
+
+    def construir_summary_test_base(self, channel, service, version, object_path, field_name):
+        return f"[{channel}-Global] {service} | {version} | {object_path} | {field_name} | Global/Esperado"
+
+
+    def construir_descripcion_test_base(self, field_name, object_path):
+        return (
+            f"Validación del campo {field_name} en {object_path}. "
+            "La prueba usa la request Bruno seleccionada como referencia funcional."
+        )
 
 
     def volver_a_test_sets(self):
@@ -1024,8 +1087,9 @@ class TestCaseDesignPage(BasePage):
         return str(value)
 
 
-    def construir_action(self, response_path, request_value, actual_value, expected_value, comparison_operator, body_template):
+    def construir_action(self, response_path, request_value, actual_value, expected_value, comparison_operator, body_template, case_type):
         return (
+            f"Tipo de caso: {case_type or CASE_TYPES[0]}\n"
             f"Campo validado: {response_path}\n"
             f"Valor enviado en request: {request_value or '-'}\n"
             f"Condición esperada: {comparison_operator}\n"

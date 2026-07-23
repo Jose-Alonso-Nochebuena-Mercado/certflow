@@ -326,6 +326,76 @@ def construir_identificador_test_case(test_set, test, case, case_index):
     )
 
 
+def construir_summary_test_case(crq_id, test_payload, test_index, case):
+
+    base_summary = str(
+        test_payload.get("summary", f"{crq_id} | Test {test_index}")
+    ).strip() or f"{crq_id} | Test {test_index}"
+
+    case = dict(
+        case or {}
+    )
+    case_type = str(
+        case.get("case_type", "")
+    ).strip()
+    case_name = str(
+        case.get("case_name", "")
+    ).strip()
+
+    summary = base_summary
+
+    for suffix in [case_type, case_name]:
+
+        if suffix and suffix.lower() not in summary.lower():
+
+            summary = f"{summary} | {suffix}"
+
+    return summary
+
+
+def construir_descripcion_test_case(test_payload, case):
+
+    base_description = str(
+        test_payload.get("description", "")
+    ).strip()
+    case = dict(
+        case or {}
+    )
+
+    detail_lines = []
+
+    for label, value in [
+        ("Escenario", case.get("case_name", "")),
+        ("Tipo de caso", case.get("case_type", "")),
+        ("Campo objetivo", case.get("response_field_path", "")),
+        ("Condición", case.get("comparison_operator", "")),
+        ("Valor enviado en request", case.get("request_value", "")),
+        ("Resultado esperado", case.get("expected_value", ""))
+    ]:
+
+        clean_value = str(value or "").strip()
+
+        if clean_value:
+
+            detail_lines.append(
+                f"{label}: {clean_value}"
+            )
+
+    if not detail_lines:
+
+        return base_description
+
+    details_block = "\n".join(
+        detail_lines
+    )
+
+    if base_description:
+
+        return f"{base_description}\n\n{details_block}"
+
+    return details_block
+
+
 def construir_payload_planning_desde_crq(
     crq,
     planning_data
@@ -404,33 +474,17 @@ def construir_payload_planning_desde_crq(
                         )
                         continue
 
-                    case_name = str(
-                        dict(case).get("case_name", "")
-                    ).strip()
-                    base_summary = test_payload.get(
-                        "summary",
-                        f"{crq_id} | Test {test_index}"
+                    summary = construir_summary_test_case(
+                        crq_id,
+                        test_payload,
+                        test_index,
+                        case
                     )
 
-                    if case_name and case_name.lower() not in base_summary.lower():
-
-                        summary = f"{base_summary} | {case_name}"
-
-                    else:
-
-                        summary = base_summary
-
-                    description = str(
-                        test_payload.get("description", "")
-                    ).strip()
-
-                    if case_name:
-
-                        description = (
-                            f"{description}\n\nEscenario: {case_name}"
-                            if description
-                            else f"Escenario: {case_name}"
-                        )
+                    description = construir_descripcion_test_case(
+                        test_payload,
+                        case
+                    )
 
                     actions = str(
                         dict(case).get(
