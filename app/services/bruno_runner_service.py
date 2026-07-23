@@ -3,11 +3,13 @@ import re
 import subprocess
 import tempfile
 import time
+import warnings
 from pathlib import Path
 from datetime import datetime, timezone
 from uuid import uuid4
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
 from app.services.config_service import (
     PROJECT_ROOT,
@@ -591,10 +593,28 @@ def ejecutar_request_desde_bru(
             request_kwargs["data"] = body_text
 
     try:
-
-        response = requests.request(
-            **request_kwargs
+        verify_value = request_kwargs.get(
+            "verify",
+            True
         )
+
+        if verify_value is False:
+
+            with warnings.catch_warnings():
+
+                warnings.simplefilter(
+                    "ignore",
+                    InsecureRequestWarning
+                )
+                response = requests.request(
+                    **request_kwargs
+                )
+
+        else:
+
+            response = requests.request(
+                **request_kwargs
+            )
 
     except requests.exceptions.SSLError as error:
 
@@ -609,7 +629,7 @@ def ejecutar_request_desde_bru(
             f"No fue posible ejecutar la request real desde `.bru`: {error}"
         ) from error
 
-    if response.status_code >= 400:
+    if response.status_code >= 400 and not include_http_metadata:
 
         detalle = response.text[:400].strip() or response.reason or f"HTTP {response.status_code}"
 
@@ -634,6 +654,18 @@ def ejecutar_request_desde_bru(
         return response_json
 
     except ValueError as error:
+
+        if include_http_metadata:
+
+            return {
+                "status_code": response.status_code,
+                "reason": response.reason,
+                "headers": dict(response.headers),
+                "elapsed_ms": int(response.elapsed.total_seconds() * 1000),
+                "response": {
+                    "raw_text": response.text
+                }
+            }
 
         raise BrunoExecutionError(
             "La respuesta del servicio no es JSON válido. "

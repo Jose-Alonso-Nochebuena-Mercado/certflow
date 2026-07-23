@@ -606,7 +606,7 @@ class TestExecutionPage(BasePage):
 
 
     def obtener_ticket_test_plan(self, entry):
-        automation = dict(self.planning_data.get("automation", {}))
+        automation = dict(self.planning_data.get("automation") or {})
         state_path = str(automation.get("state_path", "")).strip()
         if not state_path:
             return ""
