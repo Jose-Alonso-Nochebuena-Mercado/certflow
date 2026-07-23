@@ -341,16 +341,60 @@ def construir_summary_test_case(crq_id, test_payload, test_index, case):
     case_name = str(
         case.get("case_name", "")
     ).strip()
+    field_name = str(
+        case.get("field_name", "")
+    ).strip()
 
     summary = base_summary
 
-    for suffix in [case_type, case_name]:
+    for suffix in [case_type]:
 
         if suffix and suffix.lower() not in summary.lower():
 
             summary = f"{summary} | {suffix}"
 
+    if nombre_caso_personalizado(field_name, case_name, case_type) and case_name.lower() not in summary.lower():
+
+        summary = f"{summary} | {case_name}"
+
     return summary
+
+
+def nombre_caso_personalizado(field_name, case_name, case_type):
+
+    normalized_name = str(
+        case_name or ""
+    ).strip().lower()
+
+    if not normalized_name:
+
+        return False
+
+    normalized_field = str(
+        field_name or ""
+    ).strip().lower()
+    normalized_case_type = str(
+        case_type or ""
+    ).strip().lower()
+
+    if normalized_case_type and normalized_name == normalized_case_type:
+
+        return False
+
+    generic_candidates = {
+        f"{normalized_field} | {normalized_case_type}".strip(),
+        f"{normalized_field}|{normalized_case_type}".strip()
+    }
+
+    if normalized_name in generic_candidates:
+
+        return False
+
+    if normalized_field and normalized_name.startswith(f"{normalized_field} | caso "):
+
+        return False
+
+    return True
 
 
 def construir_descripcion_test_case(test_payload, case):
@@ -365,7 +409,6 @@ def construir_descripcion_test_case(test_payload, case):
     detail_lines = []
 
     for label, value in [
-        ("Escenario", case.get("case_name", "")),
         ("Tipo de caso", case.get("case_type", "")),
         ("Campo objetivo", case.get("response_field_path", "")),
         ("Condición", case.get("comparison_operator", "")),
@@ -452,6 +495,7 @@ def construir_payload_planning_desde_crq(
                 ) or [
                     {
                         "case_name": f"{field_name} | Base",
+                        "field_name": field_name,
                         "action": test_payload.get("actions", test.get("actions", "")),
                         "response_field_path": str(test.get("field", "")).strip(),
                         "request_value": ""
@@ -459,6 +503,10 @@ def construir_payload_planning_desde_crq(
                 ]
 
                 for case_index, case in enumerate(draft_cases, start=1):
+                    case = dict(
+                        case or {}
+                    )
+                    case.setdefault("field_name", field_name)
 
                     test_signature = construir_identificador_test_case(
                         test_set,

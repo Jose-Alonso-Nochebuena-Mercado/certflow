@@ -617,10 +617,18 @@ class TestCaseDesignPage(BasePage):
         current_summary = str(payload.get("summary", "")).strip()
         current_description = str(payload.get("description", "")).strip()
 
-        if not current_summary or current_summary in legacy_summaries:
+        if (
+            not current_summary
+            or current_summary in legacy_summaries
+            or "Global/Esperado" in current_summary
+        ):
             payload["summary"] = default_summary
 
-        if not current_description or current_description in legacy_descriptions:
+        if (
+            not current_description
+            or current_description in legacy_descriptions
+            or "La prueba corresponde al escenario" in current_description
+        ):
             payload["description"] = default_description
 
         if not str(payload.get("repository_path", "")).strip():
@@ -630,7 +638,7 @@ class TestCaseDesignPage(BasePage):
 
 
     def construir_summary_test_base(self, channel, service, version, object_path, field_name):
-        return f"[{channel}-Global] {service} | {version} | {object_path} | {field_name} | Global/Esperado"
+        return f"[{channel}-Global] {service} | {version} | {object_path} | {field_name}"
 
 
     def construir_descripcion_test_base(self, field_name, object_path):

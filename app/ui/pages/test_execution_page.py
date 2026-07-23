@@ -37,6 +37,7 @@ class TestExecutionPage(BasePage):
         self.screenshot_dir = None
         self.bruno_logo = None
         self.collection_node_labels = []
+        self.bruno_panel_registry = {}
         super().__init__(parent, app)
 
 
@@ -139,8 +140,10 @@ class TestExecutionPage(BasePage):
         bruno_content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
         bruno_content.grid_columnconfigure(0, weight=1, uniform="bruno")
         bruno_content.grid_columnconfigure(1, weight=1, uniform="bruno")
-        self.request_text = self.crear_bruno_panel(bruno_content, 0, "Body", "JSON", WARNING_SOFT, 390, True)
-        self.response_text = self.crear_bruno_panel(bruno_content, 1, "Response", "JSON", ACCENT_SOFT, 390, False)
+        self.request_panel = self.crear_bruno_panel(bruno_content, 0, "request", 390, True)
+        self.request_text = self.request_panel["textbox"]
+        self.response_panel = self.crear_bruno_panel(bruno_content, 1, "response", 390, False)
+        self.response_text = self.response_panel["textbox"]
 
         self.cargar_logo_bruno()
         self.render_collection_sidebar()
@@ -175,20 +178,88 @@ class TestExecutionPage(BasePage):
         return textbox
 
 
-    def crear_bruno_panel(self, parent, column, title, badge, tint, height, editable):
+    def crear_bruno_panel(self, parent, column, panel_kind, height, editable):
         card = ctk.CTkFrame(parent, fg_color="#1F1F1F", corner_radius=12, border_width=1, border_color="#313131")
         card.grid(row=0, column=column, sticky="nsew", padx=8)
-        card.grid_rowconfigure(2, weight=1)
-        tabs = ctk.CTkFrame(card, fg_color="#1F1F1F")
-        tabs.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 6))
-        ctk.CTkLabel(tabs, text=title, font=("Arial", 13, "bold"), text_color="#F5F5F5").pack(side="left")
-        ctk.CTkLabel(tabs, text=badge, font=("Arial", 11, "bold"), text_color="#F6B13D").pack(side="right")
-        ctk.CTkLabel(card, text="Pretty", font=("Arial", 11), text_color="#BEBEBE").grid(row=1, column=0, sticky="e", padx=12, pady=(0, 8))
-        textbox = ctk.CTkTextbox(card, height=height, corner_radius=0, border_width=0, fg_color="#161616", text_color="#E7E7E7", wrap="word", font=("Consolas", 12))
-        textbox.grid(row=2, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        card.grid_rowconfigure(3, weight=1)
+
+        header = ctk.CTkFrame(card, fg_color="#1F1F1F")
+        header.grid(row=0, column=0, sticky="ew", padx=12, pady=(10, 2))
+
+        tabs = ctk.CTkFrame(header, fg_color="transparent")
+        tabs.pack(side="left", fill="x", expand=True)
+
+        meta = ctk.CTkFrame(header, fg_color="transparent")
+        meta.pack(side="right")
+
+        if panel_kind == "request":
+            tab_items = [("Params", False), ("Body", True), ("Headers", False), ("Auth", False), ("Vars", False), ("Script", False), ("Assert", False), ("Tests", False)]
+            meta_badges = [
+                ("JSON", "#F6B13D"),
+                ("Pretty", "#BEBEBE")
+            ]
+        else:
+            tab_items = [("Response", True), ("Headers", False), ("Timeline", False), ("Tests", False)]
+            meta_badges = [
+                ("-", "#86D37C"),
+                ("- ms", "#C8C8C8"),
+                ("- B", "#C8C8C8")
+            ]
+
+        for text, active in tab_items:
+            ctk.CTkLabel(
+                tabs,
+                text=text,
+                font=("Arial", 11, "bold" if active else "normal"),
+                text_color="#F5F5F5" if active else "#BEBEBE",
+                fg_color="#242424" if active else "transparent",
+                corner_radius=8,
+                padx=8,
+                pady=4
+            ).pack(side="left", padx=(0, 8))
+
+        meta_labels = []
+        for text, color in meta_badges:
+            label = ctk.CTkLabel(meta, text=text, font=("Arial", 11, "bold"), text_color=color)
+            label.pack(side="left", padx=(8, 0))
+            meta_labels.append(label)
+
+        secondary_tabs = ctk.CTkFrame(card, fg_color="#1F1F1F")
+        secondary_tabs.grid(row=1, column=0, sticky="ew", padx=12, pady=(0, 8))
+        if panel_kind == "request":
+            for text in ["Docs", "Settings"]:
+                ctk.CTkLabel(secondary_tabs, text=text, font=("Arial", 11), text_color="#BEBEBE").pack(side="left", padx=(0, 10))
+        else:
+            ctk.CTkLabel(secondary_tabs, text="Pretty", font=("Arial", 11), text_color="#BEBEBE").pack(side="right")
+
+        editor = ctk.CTkFrame(card, fg_color="#161616", corner_radius=0)
+        editor.grid(row=3, column=0, sticky="nsew", padx=12, pady=(0, 12))
+        editor.grid_columnconfigure(1, weight=1)
+        editor.grid_rowconfigure(0, weight=1)
+
+        gutter = ctk.CTkTextbox(editor, width=42, height=height, corner_radius=0, border_width=0, fg_color="#111111", text_color="#6F6F6F", wrap="none", font=("Consolas", 12))
+        gutter.grid(row=0, column=0, sticky="ns")
+        textbox = ctk.CTkTextbox(editor, height=height, corner_radius=0, border_width=0, fg_color="#161616", text_color="#E7E7E7", wrap="word", font=("Consolas", 12))
+        textbox.grid(row=0, column=1, sticky="nsew")
+
+        self.bruno_panel_registry[str(textbox)] = {
+            "gutter": gutter,
+            "kind": panel_kind,
+            "meta_labels": meta_labels
+        }
+
+        textbox.configure(yscrollcommand=lambda first, _last, gutter=gutter: gutter.yview_moveto(first))
+        self.actualizar_lineas_textbox(textbox, "")
+
         if not editable:
             textbox.configure(state="disabled")
-        return textbox
+        gutter.configure(state="disabled")
+        return {
+            "card": card,
+            "textbox": textbox,
+            "gutter": gutter,
+            "meta_labels": meta_labels
+        }
 
 
     def construir_execution_entries(self):
@@ -267,6 +338,7 @@ class TestExecutionPage(BasePage):
             self.current_result = {"error": str(error)}
             self.reemplazar_texto(self.response_text, str(error), False)
             self.reemplazar_texto(self.execution_text, f"Error ejecutando caso\n\n{error}", False)
+            self.actualizar_meta_response_panel(None)
             return
 
         self.current_result = resultado
@@ -275,6 +347,7 @@ class TestExecutionPage(BasePage):
         target_value = self.obtener_valor_desde_path(response_json, response_path)
         self.render_response_json(response_json, response_path)
         self.reemplazar_texto(self.execution_text, f"HTTP: {resultado.get('status_code', '-')} {resultado.get('reason', '')}\nTiempo: {resultado.get('elapsed_ms', '-')} ms\n\nCampo objetivo: {self.obtener_ultima_clave_path(response_path)}\nValor encontrado: {self.valor_a_texto(target_value) or 'Sin dato'}", False)
+        self.actualizar_meta_response_panel(resultado)
 
 
     def capturar_actual(self):
@@ -578,10 +651,13 @@ class TestExecutionPage(BasePage):
         content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
         content.grid_columnconfigure(0, weight=1, uniform="capture")
         content.grid_columnconfigure(1, weight=1, uniform="capture")
-        request_box = self.crear_bruno_panel(content, 0, "Body", "JSON", WARNING_SOFT, 820, True)
-        response_box = self.crear_bruno_panel(content, 1, "Response", "JSON", ACCENT_SOFT, 820, True)
+        request_panel = self.crear_bruno_panel(content, 0, "request", 820, True)
+        response_panel = self.crear_bruno_panel(content, 1, "response", 820, True)
+        request_box = request_panel["textbox"]
+        response_box = response_panel["textbox"]
         self.reemplazar_texto(request_box, self.request_text.get("1.0", "end").strip(), True)
         self.reemplazar_texto(response_box, self.response_text.get("1.0", "end").strip(), True)
+        self.actualizar_meta_response_panel(self.current_result, response_panel)
         try:
             line = self.obtener_linea_target_actual()
             if line is not None:
@@ -930,6 +1006,50 @@ class TestExecutionPage(BasePage):
         return str(value)
 
 
+    def actualizar_meta_response_panel(self, resultado, panel=None):
+        target_panel = panel or getattr(self, "response_panel", None)
+        if not target_panel:
+            return
+
+        labels = list(target_panel.get("meta_labels", []))
+        if len(labels) < 3:
+            return
+
+        if not isinstance(resultado, dict) or resultado.get("error"):
+            values = ["-", "- ms", "- B"]
+        else:
+            status_code = resultado.get("status_code", "-")
+            reason = str(resultado.get("reason", "")).strip()
+            elapsed_ms = resultado.get("elapsed_ms", "-")
+            response_payload = resultado.get("response", {})
+            if isinstance(response_payload, dict) and "raw_text" in response_payload:
+                raw_text = str(response_payload.get("raw_text", ""))
+            else:
+                raw_text = json.dumps(response_payload, ensure_ascii=False, indent=4)
+            size_bytes = len(raw_text.encode("utf-8")) if raw_text else 0
+            values = [f"{status_code} {reason}".strip(), f"{elapsed_ms} ms", f"{size_bytes} B"]
+
+        for label, value in zip(labels, values):
+            label.configure(text=value)
+
+
+    def actualizar_lineas_textbox(self, textbox, value):
+        meta = self.bruno_panel_registry.get(str(textbox))
+        if not meta:
+            return
+
+        gutter = meta.get("gutter")
+        if gutter is None:
+            return
+
+        line_count = max(1, len(str(value or "").splitlines()))
+        line_numbers = "\n".join(str(index) for index in range(1, line_count + 1))
+        gutter.configure(state="normal")
+        gutter.delete("1.0", "end")
+        gutter.insert("1.0", line_numbers)
+        gutter.configure(state="disabled")
+
+
     def obtener_ultima_clave_path(self, path):
         segments = [segment.strip() for segment in str(path or "").split(".") if segment.strip()]
         if not segments:
@@ -941,5 +1061,6 @@ class TestExecutionPage(BasePage):
         textbox.configure(state="normal")
         textbox.delete("1.0", "end")
         textbox.insert("1.0", value or "")
+        self.actualizar_lineas_textbox(textbox, value or "")
         if not editable:
             textbox.configure(state="disabled")
