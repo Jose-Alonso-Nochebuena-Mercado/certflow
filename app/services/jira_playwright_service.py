@@ -327,6 +327,7 @@ def construir_issue_dummy(issue_type, repository_path):
     if issue_type == "Test Plan":
 
         typology_name = "Integration"
+        test_set_keys = obtener_test_set_keys_dummy()
 
         return {
             "type": issue_type,
@@ -348,7 +349,7 @@ def construir_issue_dummy(issue_type, repository_path):
             "end_date": formatear_fecha_jira(
                 contexto["today"]
             ),
-            "associated_test_set_keys": [],
+            "associated_test_set_keys": test_set_keys,
             "auto_submit": True
         }
 
@@ -727,4 +728,3 @@ def lanzar_dummy_test_plan_desde_home():
     return lanzar_automatizacion_jira(
         payload
     )
-
