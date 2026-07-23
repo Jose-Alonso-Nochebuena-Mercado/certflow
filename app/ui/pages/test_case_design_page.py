@@ -239,6 +239,40 @@ class TestCaseDesignPage(BasePage):
         return resultado
 
 
+    def construir_identificador_entry(self, entry):
+        if not entry:
+            return None
+        return (
+            str(entry["test_set"].get("path", "")).strip(),
+            str(entry["test"].get("field", "")).strip(),
+            str(entry.get("response_field_path", "")).strip()
+        )
+
+
+    def refrescar_test_entries(self, selected_identifier=None):
+        if selected_identifier is None and self.selected_test_index is not None and 0 <= self.selected_test_index < len(self.test_entries):
+            selected_identifier = self.construir_identificador_entry(self.test_entries[self.selected_test_index])
+
+        self.test_entries = self.construir_test_entries()
+
+        if not self.test_entries:
+            self.selected_test_index = None
+            return None
+
+        if selected_identifier is not None:
+            for index, entry in enumerate(self.test_entries):
+                if self.construir_identificador_entry(entry) == selected_identifier:
+                    self.selected_test_index = index
+                    return entry
+
+        if self.selected_test_index is None:
+            self.selected_test_index = 0
+        else:
+            self.selected_test_index = min(self.selected_test_index, len(self.test_entries) - 1)
+
+        return self.test_entries[self.selected_test_index]
+
+
     def render_navigation(self):
         for widget in self.navigation_panel.winfo_children():
             widget.destroy()
@@ -306,10 +340,13 @@ class TestCaseDesignPage(BasePage):
 
 
     def agregar_caso(self):
-        entry = self.obtener_test_actual()
+        entry = self.refrescar_test_entries()
         if not entry:
             return
         self.persistir_test_actual()
+        entry = self.refrescar_test_entries(self.construir_identificador_entry(entry))
+        if not entry:
+            return
         cases = self.asegurar_casos(entry)
         base = self.crear_caso_base(entry)
         base["case_name"] = f"{entry['test'].get('field', 'Campo')} | Caso {len(cases) + 1}"
@@ -346,9 +383,10 @@ class TestCaseDesignPage(BasePage):
 
 
     def persistir_test_actual(self, actualizar_preview=True):
-        entry = self.obtener_test_actual()
+        entry = self.refrescar_test_entries()
         if not entry:
             return
+        selected_identifier = self.construir_identificador_entry(entry)
         payload = self.asegurar_payload_test(entry)
         payload["summary"] = self.test_summary_entry.get().strip()
         payload["repository_path"] = self.test_repository_entry.get().strip()
@@ -378,6 +416,7 @@ class TestCaseDesignPage(BasePage):
         entry["test"]["actions"] = action_text
         entry["test"]["estado"] = "Diseñado"
         self.sincronizar_tests_comunes()
+        self.refrescar_test_entries(selected_identifier)
         if actualizar_preview:
             self.actualizar_previews()
             self.render_case_buttons(cases)
