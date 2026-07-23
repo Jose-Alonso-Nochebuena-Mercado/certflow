@@ -260,6 +260,7 @@ Reglas vigentes:
    - conectar ejecución real con Bruno
    - permitir revisión más granular de escenarios por campo
    - enriquecer el inventario local con sincronización posterior hacia Jira/Xray
+   - a futuro implementar actualización completa de Test Sets ya existentes, incluyendo agregar nuevos Tests y modificar Tests existentes; este trabajo se pospone porque implica resolver edición diferencial, reconciliación con Jira/Xray y preservación segura de asociaciones ya creadas
 
 ### Prioridad media
 

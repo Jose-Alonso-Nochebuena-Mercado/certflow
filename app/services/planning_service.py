@@ -18,6 +18,7 @@ from app.services.xray_service import (
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 BASE_PATH = PROJECT_ROOT / "metadata" / "plannings"
+AUTOMATION_PATH = PROJECT_ROOT / "metadata" / "jira_automation"
 
 
 
@@ -56,9 +57,13 @@ def cargar_planning_crq(crq_id):
             archivo
         )
 
-    return normalizar_planning_data(
+    planning_data = normalizar_planning_data(
         data,
         crq_id
+    )
+
+    return sincronizar_estado_automatizacion_local(
+        planning_data
     )
 
 
@@ -122,6 +127,9 @@ def normalizar_planning_data(
         "last_request": data.get(
             "last_request"
         ),
+        "automation": data.get(
+            "automation"
+        ),
         "plans": list(
             data.get(
                 "plans",
@@ -129,6 +137,195 @@ def normalizar_planning_data(
             )
         )
     }
+
+
+def sincronizar_estado_automatizacion_local(planning_data):
+
+    planning_data = dict(
+        planning_data or {}
+    )
+    automation = dict(
+        planning_data.get("automation") or {}
+    )
+    state_path = str(
+        automation.get("state_path", "")
+    ).strip()
+
+    if not state_path:
+
+        return planning_data
+
+    path = Path(state_path)
+
+    if not path.exists():
+
+        return planning_data
+
+    try:
+
+        state = json.loads(
+            path.read_text(encoding="utf-8")
+        )
+
+    except Exception:
+
+        return planning_data
+
+    completed = dict(
+        state.get("completed", {})
+    )
+
+    for plan_index, plan in enumerate(planning_data.get("plans", []), start=1):
+
+        payload = dict(
+            plan.get("issue_payload", {})
+        )
+        step_data = dict(
+            completed.get(f"test_plan_{plan_index}", {})
+        )
+
+        if step_data.get("jira_key"):
+
+            payload["jira_key"] = step_data.get("jira_key", "")
+            payload["jira_url"] = step_data.get("jira_url", "")
+            plan["issue_payload"] = payload
+
+    base_plan = obtener_plan_base_para_automatizacion(
+        planning_data
+    )
+
+    if not base_plan:
+
+        return planning_data
+
+    test_step_index = 0
+    test_set_step_index = 0
+
+    for test_set in base_plan.get("test_sets", []):
+
+        if not test_set.get("enabled", True):
+
+            continue
+
+        test_refs = []
+
+        for test in test_set.get("tests", []):
+
+            field_name = str(
+                test.get("field", "")
+            ).strip()
+
+            if not field_name:
+
+                continue
+
+            draft_cases = list(
+                test.get("draft_cases", [])
+            ) or [
+                {
+                    "case_name": f"{field_name} | Base",
+                    "response_field_path": field_name,
+                    "request_value": ""
+                }
+            ]
+
+            case_links = []
+
+            for case in draft_cases:
+
+                test_step_index += 1
+                step_data = dict(
+                    completed.get(f"test_{test_step_index}", {})
+                )
+                case_payload = dict(
+                    case or {}
+                )
+
+                if step_data.get("jira_key"):
+
+                    case_payload["jira_key"] = step_data.get("jira_key", "")
+                    case_payload["jira_url"] = step_data.get("jira_url", "")
+
+                case_links.append(
+                    case_payload
+                )
+                test_refs.append(
+                    step_data
+                )
+
+            if test.get("draft_cases"):
+
+                test["draft_cases"] = case_links
+
+            first_created = next(
+                (
+                    item for item in test_refs
+                    if item.get("jira_key")
+                ),
+                {}
+            )
+
+            test_payload = dict(
+                test.get("issue_payload", {})
+            )
+
+            if first_created.get("jira_key"):
+
+                test_payload["jira_key"] = first_created.get("jira_key", "")
+                test_payload["jira_url"] = first_created.get("jira_url", "")
+                test["issue_payload"] = test_payload
+
+        test_set_step_index += 1
+        test_set_payload = dict(
+            test_set.get("issue_payload", {})
+        )
+        test_set_state = dict(
+            completed.get(f"test_set_{test_set_step_index}", {})
+        )
+
+        if test_set_state.get("jira_key"):
+
+            test_set_payload["jira_key"] = test_set_state.get("jira_key", "")
+            test_set_payload["jira_url"] = test_set_state.get("jira_url", "")
+            test_set["issue_payload"] = test_set_payload
+
+    return planning_data
+
+
+def obtener_plan_base_para_automatizacion(planning_data):
+
+    for tipo_id in ["integrado", "accepted"]:
+
+        for plan in planning_data.get("plans", []):
+
+            if plan.get("tipo_id") == tipo_id:
+
+                return plan
+
+    planes = planning_data.get("plans", [])
+    return planes[0] if planes else None
+
+
+def resetear_datos_locales_test_planning():
+
+    if BASE_PATH.exists():
+
+        for path in BASE_PATH.glob("*.json"):
+
+            try:
+                path.unlink()
+            except Exception:
+                pass
+
+    if AUTOMATION_PATH.exists():
+
+        for path in AUTOMATION_PATH.glob("*"):
+
+            if path.is_file():
+                try:
+                    path.unlink()
+                except Exception:
+                    pass
 
 
 

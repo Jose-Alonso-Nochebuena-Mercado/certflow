@@ -103,7 +103,6 @@ def cargar_payload(path_argument):
 
 
 def guardar_payload(path_argument, payload):
-
     payload_path = Path(
         path_argument
     ).resolve()
@@ -188,6 +187,14 @@ def resolver_referencias_issue(issue, completed):
         issue["associated_test_keys"] = [
             completed.get(ref, {}).get("jira_key", "")
             for ref in issue.get("associated_test_key_refs", [])
+            if completed.get(ref, {}).get("jira_key")
+        ]
+
+    if issue.get("associated_test_set_key_refs"):
+
+        issue["associated_test_set_keys"] = [
+            completed.get(ref, {}).get("jira_key", "")
+            for ref in issue.get("associated_test_set_key_refs", [])
             if completed.get(ref, {}).get("jira_key")
         ]
 
@@ -315,9 +322,141 @@ def buscar_por_labels(page, labels):
     return None
 
 
+def buscar_picker_desde_labels(page, labels):
+
+    for label in labels or []:
+
+        try:
+
+            selector_temporal = page.evaluate(
+                """
+                (labelText) => {
+                    const normalize = (value) => String(value || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .trim()
+                        .toLowerCase();
+
+                    const isVisible = (element) => {
+                        if (!element) {
+                            return false;
+                        }
+
+                        const style = window.getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        return style.visibility !== 'hidden'
+                            && style.display !== 'none'
+                            && rect.width > 0
+                            && rect.height > 0;
+                    };
+
+                    const target = normalize(labelText);
+
+                    if (!target) {
+                        return null;
+                    }
+
+                    const candidates = Array.from(document.querySelectorAll(
+                        'label, legend, [aria-label], [data-field-id]'
+                    ));
+
+                    const findFieldInContainer = (container) => {
+                        if (!container) {
+                            return null;
+                        }
+
+                        const field = container.querySelector(
+                            '[role="combobox"], textarea, input:not([type="hidden"])'
+                        );
+
+                        return isVisible(field) ? field : null;
+                    };
+
+                    for (const candidate of candidates) {
+                        const text = normalize(
+                            candidate.textContent
+                            || candidate.getAttribute('aria-label')
+                            || candidate.getAttribute('data-field-id')
+                        );
+
+                        if (!text || (text !== target && !text.includes(target))) {
+                            continue;
+                        }
+
+                        let field = null;
+
+                        if (candidate.tagName === 'LABEL') {
+                            const htmlFor = candidate.getAttribute('for');
+
+                            if (htmlFor) {
+                                field = document.getElementById(htmlFor);
+
+                                if (isVisible(field)) {
+                                    field.setAttribute('data-certflow-picker-probe', 'true');
+                                    return '[data-certflow-picker-probe="true"]';
+                                }
+                            }
+                        }
+
+                        let container = candidate.parentElement;
+                        let depth = 0;
+
+                        while (!field && container && depth < 5) {
+                            field = findFieldInContainer(container);
+                            container = container.parentElement;
+                            depth += 1;
+                        }
+
+                        if (field) {
+                            field.setAttribute('data-certflow-picker-probe', 'true');
+                            return '[data-certflow-picker-probe="true"]';
+                        }
+                    }
+
+                    return null;
+                }
+                """,
+                label
+            )
+
+            if not selector_temporal:
+
+                continue
+
+            locator = page.locator(
+                str(selector_temporal)
+            )
+
+            if locator.count() > 0 and locator_es_visible(
+                locator.first
+            ):
+
+                return locator.first
+
+        except Exception:
+
+            continue
+
+        finally:
+
+            try:
+
+                page.locator(
+                    "[data-certflow-picker-probe='true']"
+                ).evaluate_all(
+                    "elements => elements.forEach(element => element.removeAttribute('data-certflow-picker-probe'))"
+                )
+
+            except Exception:
+
+                pass
+
+    return None
+
+
 def buscar_por_selectores(page, selectors):
 
-    for selector in selectors:
+    for selector in selectors or []:
 
         try:
 
@@ -334,6 +473,97 @@ def buscar_por_selectores(page, selectors):
             continue
 
     return None
+
+
+def buscar_visible_por_selectores(page, selectors):
+    for selector in selectors or []:
+
+        try:
+
+            locator = page.locator(
+                selector
+            )
+            total = min(
+                locator.count(),
+                10
+            )
+
+            for indice in range(total):
+
+                candidato = locator.nth(
+                    indice
+                )
+
+                if locator_es_visible(
+                    candidato
+                ):
+
+                    return candidato
+
+        except Exception:
+
+            continue
+
+    return None
+
+
+def expandir_selectores_issue_picker(selectors):
+
+    candidatos = []
+    vistos = set()
+
+    for selector in selectors or []:
+
+        variantes = [
+            selector
+        ]
+        match = re.search(
+            r"(customfield_\d+)",
+            str(selector or "")
+        )
+
+        if match:
+
+            base = match.group(1)
+            variantes.extend(
+                [
+                    f"#{base}",
+                    f"#{base}-field",
+                    f"#{base}-textarea",
+                    f"input[id='{base}']",
+                    f"textarea[id='{base}']",
+                    f"input[name='{base}']",
+                    f"textarea[name='{base}']",
+                    f"input[id^='{base}']",
+                    f"textarea[id^='{base}']",
+                    f"input[name^='{base}']",
+                    f"textarea[name^='{base}']",
+                    f"[id^='{base}'][role='combobox']",
+                    f"[name^='{base}'][role='combobox']",
+                    f"[data-field-id='{base}'] input",
+                    f"[data-field-id='{base}'] textarea",
+                    f"[data-field-id='{base}'] [role='combobox']",
+                    f"[aria-controls*='{base}']",
+                    f"[aria-label*='{base}']"
+                ]
+            )
+
+        for variante in variantes:
+
+            limpio = str(
+                variante or ""
+            ).strip()
+
+            if limpio and limpio not in vistos:
+
+                vistos.add(
+                    limpio
+                )
+                candidatos.append(
+                    limpio
+                )
+
+    return candidatos
 
 
 
@@ -475,6 +705,123 @@ def completar_selector_autocomplete(page, labels, value):
             print(f"SKIP combo sin opción -> {labels[0]}")
 
             return False
+
+
+def texto_normalizado(valor):
+
+    return re.sub(
+        r"\s+",
+        " ",
+        str(valor or "").strip().lower()
+    )
+
+
+def leer_texto_locator(locator):
+
+    for getter in [
+        lambda item: item.input_value(),
+        lambda item: item.get_attribute("value"),
+        lambda item: item.get_attribute("title"),
+        lambda item: item.get_attribute("aria-label"),
+        lambda item: item.inner_text(),
+        lambda item: item.text_content()
+    ]:
+
+        try:
+            value = str(getter(locator) or "").strip()
+
+            if value:
+
+                return value
+
+        except Exception:
+
+            continue
+
+    return ""
+
+
+def obtener_issue_type_actual(page):
+
+    locator = buscar_visible_por_selectores(
+        page,
+        [
+            "#issuetype-field",
+            "[name='issuetype']",
+            "[name='issuetype-field']",
+            "[data-field-id='issuetype'] input",
+            "[data-field-id='issuetype'] [role='combobox']"
+        ]
+    )
+
+    if locator is None:
+
+        locator = buscar_combo(
+            page,
+            ["Issue Type", "Issue type"]
+        )
+
+    if locator is None:
+
+        return ""
+
+    return leer_texto_locator(
+        locator
+    )
+
+
+def issue_type_configurado(page, expected_value):
+
+    actual = obtener_issue_type_actual(
+        page
+    )
+
+    if not actual:
+
+        return False
+
+    esperado = texto_normalizado(
+        expected_value
+    )
+    actual_normalizado = texto_normalizado(
+        actual
+    )
+
+    return esperado == actual_normalizado or esperado in actual_normalizado
+
+
+def completar_issue_type(page, issue_type):
+
+    if not issue_type:
+
+        return False
+
+    issue_type_ok = completar_combobox_jira_por_id(
+        page,
+        "#issuetype-field",
+        "issuetype-suggestions",
+        issue_type,
+        "Issue Type"
+    )
+
+    if not issue_type_ok:
+
+        issue_type_ok = completar_selector_autocomplete(
+            page,
+            ["Issue Type", "Issue type"],
+            issue_type
+        )
+
+    if issue_type_configurado(page, issue_type):
+
+        actual = obtener_issue_type_actual(
+            page
+        )
+        print(f"OK Issue Type confirmado -> {actual}")
+        return True
+
+    print(f"SKIP Issue Type no confirmado -> esperado: {issue_type}")
+    return False
 
 
 def completar_combobox_jira_por_id(
@@ -842,18 +1189,32 @@ def completar_labels(page, value):
 
         return False
 
-    return completar_input(
+    return completar_multi_issue_picker(
         page,
-        ["Labels"],
-        value,
+        [
+            valor.strip()
+            for valor in str(value).split(",")
+            if valor.strip()
+        ],
+        "Labels",
         selectors=[
             "#labels-textarea",
-            "textarea[role='combobox'][id='labels-textarea']"
+            "textarea[role='combobox'][id='labels-textarea']",
+            "input[aria-label='Labels']"
+        ],
+        labels=[
+            "Labels"
         ]
     )
 
 
-def completar_multi_issue_picker(page, textarea_id, issue_keys, log_name):
+def completar_multi_issue_picker(
+    page,
+    issue_keys,
+    log_name,
+    selectors=None,
+    labels=None
+):
 
     valores = [
         str(valor).strip()
@@ -865,14 +1226,43 @@ def completar_multi_issue_picker(page, textarea_id, issue_keys, log_name):
 
         return False
 
-    locator = buscar_por_selectores(
+    print(f"Buscando picker -> {log_name} ({len(valores)} valores)")
+
+    locator = buscar_visible_por_selectores(
         page,
-        [
-            f"#{textarea_id}"
-        ]
+        expandir_selectores_issue_picker(
+            selectors
+        )
     )
 
-    if locator is None or not locator_es_visible(locator):
+    if locator is None and labels:
+
+        locator = buscar_picker_desde_labels(
+            page,
+            labels
+        )
+
+    if locator is None and labels:
+
+        locator = buscar_combo(
+            page,
+            labels
+        )
+
+    if locator is None and labels:
+
+        candidato_label = buscar_por_labels(
+            page,
+            labels
+        )
+
+        if candidato_label is not None and locator_es_visible(
+            candidato_label
+        ):
+
+            locator = candidato_label
+
+    if locator is None:
 
         print(f"SKIP picker -> {log_name}")
         return False
@@ -880,11 +1270,39 @@ def completar_multi_issue_picker(page, textarea_id, issue_keys, log_name):
     for valor in valores:
 
         locator.click(timeout=4000)
+        try:
+
+            locator.press("Control+A")
+            locator.press("Backspace")
+
+        except Exception:
+
+            pass
         locator.type(
             valor,
             delay=20
         )
         page.wait_for_timeout(1200)
+
+        opcion = page.get_by_text(
+            re.compile(
+                rf"^{re.escape(valor)}(?:\s|$)",
+                re.IGNORECASE
+            )
+        ).first
+
+        try:
+
+            if opcion.count() > 0 and opcion.is_visible():
+
+                opcion.click(timeout=4000)
+                page.wait_for_timeout(800)
+                continue
+
+        except Exception:
+
+            pass
+
         locator.press("Enter")
         page.wait_for_timeout(800)
 
@@ -1299,25 +1717,16 @@ def rellenar_formulario(page, payload):
         print("Project quedó sin cambios automáticos; se asume que Jira ya lo fijó o el combo visible no fue usable.")
 
     print("Completando Issue Type...")
-    issue_type_ok = completar_combobox_jira_por_id(
+    issue_type_ok = completar_issue_type(
         page,
-        "#issuetype-field",
-        "issuetype-suggestions",
-        issue.get("type"),
-        "Issue Type"
+        issue_type
     )
 
     if not issue_type_ok:
 
-        issue_type_ok = completar_selector_autocomplete(
-            page,
-            ["Issue Type", "Issue type"],
-            issue.get("type")
+        raise JiraAutomationError(
+            f"No se pudo confirmar el Issue Type '{issue_type}'. Se detiene la automatización para evitar crear un issue con tipo incorrecto."
         )
-
-    if not issue_type_ok:
-
-        print("Issue Type quedó sin cambios automáticos; se asume que Jira ya lo fijó o el combo visible no fue usable.")
 
     avanzar_next_si_aplica(
         page
@@ -1360,9 +1769,14 @@ def rellenar_formulario(page, payload):
         page.wait_for_timeout(1200)
         completar_multi_issue_picker(
             page,
-            "customfield_14612-textarea",
             issue.get("test_keys", []),
-            "Tests del Test Set"
+            "Tests del Test Set",
+            selectors=[
+                "#customfield_14612-textarea"
+            ],
+            labels=[
+                "Tests"
+            ]
         )
 
     if issue_type == "Test Plan":
@@ -1372,10 +1786,16 @@ def rellenar_formulario(page, payload):
             issue.get("typology_name")
         )
 
-        abrir_tab_si_existe(
+        detalles_tab_abierta = abrir_tab_si_existe(
             page,
             "Tests Plan Details"
         )
+        if not detalles_tab_abierta:
+
+            abrir_tab_si_existe(
+                page,
+                "Tests"
+            )
         page.wait_for_timeout(1200)
 
         completar_fecha(
@@ -1396,17 +1816,84 @@ def rellenar_formulario(page, payload):
             issue.get("begin_date"),
             "Begin Date"
         )
-        completar_multi_issue_picker(
-            page,
-            "customfield_14626-textarea",
-            issue.get("associated_test_keys", []),
-            "Tests asociados al Test Plan"
+        try:
+
+            page.keyboard.press("Tab")
+
+        except Exception:
+
+            pass
+
+        page.wait_for_timeout(500)
+        page.wait_for_timeout(1500)
+        associated_test_set_keys = issue.get(
+            "associated_test_set_keys",
+            []
         )
+
+        associated_test_keys = issue.get(
+            "associated_test_keys",
+            []
+        )
+
+        if associated_test_set_keys:
+
+            print(
+                "Intentando asociar Test Sets al Test Plan: "
+                f"{', '.join(associated_test_set_keys)}"
+            )
+
+            if not completar_multi_issue_picker(
+                page,
+                associated_test_set_keys,
+                "Test Sets asociados al Test Plan",
+                selectors=[
+                    "#customfield_14626-textarea",
+                    "#customfield_14627-textarea",
+                    "#customfield_14628-textarea",
+                    "#customfield_14625-textarea"
+                ],
+                labels=[
+                    "Tests associated with a Test Plan",
+                    "Tests asociados al Test Plan",
+                    "Associated Test Sets",
+                    "Test Sets",
+                    "Test Set"
+                ]
+            ):
+
+                raise JiraAutomationError(
+                    "No se pudieron asociar los Test Set al Test Plan."
+                )
+
+        elif associated_test_keys:
+
+            if not completar_multi_issue_picker(
+                page,
+                associated_test_keys,
+                "Tests asociados al Test Plan",
+                selectors=[
+                    "#customfield_14626-textarea"
+                ],
+                labels=[
+                    "Associated Tests",
+                    "Tests"
+                ]
+            ):
+
+                raise JiraAutomationError(
+                    "No se pudieron asociar los Tests al Test Plan."
+                )
 
     labels = issue.get("labels")
 
     if labels:
 
+        abrir_tab_si_existe(
+            page,
+            "General"
+        )
+        page.wait_for_timeout(800)
         print("Completando Labels...")
         completar_labels(
             page,
@@ -1695,4 +2182,3 @@ if __name__ == "__main__":
 
         print(f"[Jira Playwright] Error: {error}")
         raise
-

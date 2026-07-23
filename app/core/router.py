@@ -27,6 +27,11 @@ class Router:
         from app.ui.pages.discovery_page import DiscoveryPage
         from app.ui.pages.crq_detail_page import CRQDetailPage
         from app.ui.pages.add_tests_page import AddTestsPage
+        from app.ui.pages.test_plan_design_page import TestPlanDesignPage
+        from app.ui.pages.test_set_design_page import TestSetDesignPage
+        from app.ui.pages.test_case_design_page import TestCaseDesignPage
+        from app.ui.pages.test_execution_page import TestExecutionPage
+        from app.ui.pages.test_design_page import TestDesignPage
         from app.ui.pages.settings_page import SettingsPage
 
 
@@ -54,6 +59,21 @@ class Router:
 
             "add_tests":
                 AddTestsPage,
+
+            "test_plan_design":
+                TestPlanDesignPage,
+
+            "test_set_design":
+                TestSetDesignPage,
+
+            "test_case_design":
+                TestCaseDesignPage,
+
+            "test_execution":
+                TestExecutionPage,
+
+            "test_design":
+                TestDesignPage,
 
             "settings":
                 SettingsPage

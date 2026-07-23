@@ -29,10 +29,8 @@ from app.services.crq_service import (
     listar_crqs,
     eliminar_crq as eliminar_crq_service
 )
-from app.services.jira_playwright_service import (
-    JiraPlaywrightConfigError,
-    JiraPlaywrightRuntimeError,
-    lanzar_dummy_e2e_desde_home
+from app.services.planning_service import (
+    resetear_datos_locales_test_planning
 )
 
 from app.ui.components.crq_card import (
@@ -61,9 +59,6 @@ class HomePage(BasePage):
 
 
     def crear_contenido(self):
-
-        self.crear_panel_temporal_jira()
-
         top_section = ctk.CTkFrame(
             self,
             fg_color="transparent"
@@ -108,6 +103,22 @@ class HomePage(BasePage):
 
         left_slot.grid_propagate(False)
 
+        reset_button = ctk.CTkButton(
+            left_slot,
+            text="Reset local",
+            width=120,
+            height=40,
+            corner_radius=20,
+            fg_color="#F6E6B4",
+            hover_color="#E8D58E",
+            text_color="#6B5200",
+            command=self.confirmar_reset_local
+        )
+
+        reset_button.pack(
+            side="left"
+        )
+
         hero = ctk.CTkFrame(
             top_section,
             fg_color="transparent"
@@ -133,6 +144,27 @@ class HomePage(BasePage):
         )
 
         right_slot.grid_propagate(False)
+
+        nuevo_button = ctk.CTkButton(
+            right_slot,
+            text="+",
+            width=CIRCULAR_BUTTON_SIZE,
+            height=CIRCULAR_BUTTON_SIZE,
+            corner_radius=CIRCULAR_BUTTON_RADIUS,
+            font=(
+                "Arial",
+                24,
+                "bold"
+            ),
+            fg_color=PRIMARY,
+            hover_color=PRIMARY_LIGHT,
+            text_color=BACKGROUND,
+            command=self.ir_nuevo_crq
+        )
+
+        nuevo_button.pack(
+            side="right"
+        )
 
 
         titulo = ctk.CTkLabel(
@@ -202,148 +234,6 @@ class HomePage(BasePage):
             )
 
 
-    def crear_panel_temporal_jira(self):
-
-        panel = ctk.CTkFrame(
-            self,
-            fg_color=SURFACE,
-            corner_radius=18,
-            border_width=1,
-            border_color=BORDER
-        )
-
-        panel.pack(
-            fill="x",
-            side="bottom",
-            padx=PAGE_HORIZONTAL_PADDING,
-            pady=(0, 24)
-        )
-
-        body = ctk.CTkFrame(
-            panel,
-            fg_color="transparent"
-        )
-
-        body.pack(
-            fill="x",
-            padx=18,
-            pady=14
-        )
-
-        titulo = ctk.CTkLabel(
-            body,
-            text="Acciones temporales Jira/Xray",
-            font=get_font(SUBTITLE),
-            text_color=PRIMARY
-        )
-
-        titulo.pack(
-            anchor="w"
-        )
-
-        ayuda = ctk.CTkLabel(
-            body,
-            text="Bloque temporal para probar el E2E dummy completo en Jira/Xray: 2 tests, 2 test sets y 1 test plan con estado persistido para reintentos.",
-            font=get_font(BODY),
-            text_color=TEXT_SECONDARY,
-            justify="left"
-        )
-
-        ayuda.pack(
-            anchor="w",
-            pady=(6, 10)
-        )
-
-        acciones = ctk.CTkFrame(
-            body,
-            fg_color="transparent"
-        )
-
-        acciones.pack(
-            fill="x"
-        )
-
-        nuevo_button = ctk.CTkButton(
-            acciones,
-            text="+",
-            width=CIRCULAR_BUTTON_SIZE,
-            height=CIRCULAR_BUTTON_SIZE,
-            corner_radius=CIRCULAR_BUTTON_RADIUS,
-            font=(
-                "Arial",
-                24,
-                "bold"
-            ),
-            fg_color=PRIMARY,
-            hover_color=PRIMARY_LIGHT,
-            text_color=BACKGROUND,
-            command=self.ir_nuevo_crq
-        )
-
-        nuevo_button.pack(
-            side="right",
-            padx=(12, 0)
-        )
-
-        boton = ctk.CTkButton(
-            acciones,
-            text="Prueba E2E Jira/Xray",
-            width=220,
-            height=36,
-            corner_radius=18,
-            fg_color=PRIMARY,
-            hover_color=PRIMARY_LIGHT,
-            command=self.mostrar_accion_temporal
-        )
-
-        boton.pack(
-            side="left",
-            padx=(0, 10)
-        )
-
-
-    def mostrar_accion_temporal(self):
-
-        try:
-
-            payload_path = lanzar_dummy_e2e_desde_home()
-
-        except JiraPlaywrightConfigError as error:
-
-            MessageBox(
-                self,
-                (
-                    "No se pudo lanzar la prueba E2E Jira/Xray.\n\n"
-                    f"{error}\n\n"
-                    "Completa la configuración en Settings > Jira y vuelve a intentarlo."
-                ),
-                "warning"
-            )
-            return
-
-        except JiraPlaywrightRuntimeError as error:
-
-            MessageBox(
-                self,
-                (
-                    "No se pudo iniciar Playwright para la prueba E2E Jira/Xray.\n\n"
-                    f"{error}"
-                ),
-                "error"
-            )
-            return
-
-        MessageBox(
-            self,
-            (
-                "Se lanzó la prueba E2E Jira/Xray.\n\n"
-                f"Payload: {payload_path.name}\n"
-                "Playwright abrirá Jira en Chrome y ejecutará el flujo dummy completo con estado persistido para reintentos."
-            ),
-            "success"
-        )
-
-
 
 
     def cargar_crqs(self):
@@ -379,7 +269,8 @@ class HomePage(BasePage):
                 crq_data,
                 self.abrir_crq,
                 self.eliminar_crq,
-                self.agregar_pruebas
+                self.agregar_pruebas,
+                self.probar_resultados
             )
 
 
@@ -440,6 +331,38 @@ class HomePage(BasePage):
             "add_tests",
             crq=crq
         )
+
+
+    def probar_resultados(
+        self,
+        crq
+    ):
+
+        self.navigate(
+            "test_execution",
+            crq=crq
+        )
+
+
+    def confirmar_reset_local(self):
+
+        ConfirmDialog(
+            self,
+            "Reset local",
+            "¿Desea borrar el planning local, los tests diseñados y los estados de automatización guardados? No elimina CRQs ni borra nada en Jira.",
+            self.ejecutar_reset_local
+        )
+
+
+    def ejecutar_reset_local(self):
+
+        resetear_datos_locales_test_planning()
+        MessageBox(
+            self,
+            "Se borraron los datos locales de planning y automatización. Los CRQ siguen registrados y Jira/Xray no fue modificado.",
+            "success"
+        )
+        self.recargar_crqs()
 
 
 

@@ -10,6 +10,7 @@ from uuid import uuid4
 from app.services.config_service import (
     obtener_configuracion_jira_automatizacion
 )
+from app.services.crq_service import construir_nombre_archivo_crq
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -28,15 +29,21 @@ ISSUE_TYPE_BY_ACTION = {
 
 TYPOLOGY_BY_PLAN_NAME = {
     "Integration": {
-        "label": "#integrado"
+        "label": "#integrado",
+        "summary_tag": "Integrado"
     },
     "Acceptance": {
-        "label": "#accepted"
+        "label": "#accepted",
+        "summary_tag": "Aceptación"
     },
     "Regression": {
-        "label": "#regresion"
+        "label": "#regresion",
+        "summary_tag": "Regresión"
     }
 }
+
+DUMMY_CRQ = "CRQ-DUMMY"
+DUMMY_DOMAIN = "Movimientos TDC"
 
 
 class JiraPlaywrightConfigError(Exception):
@@ -99,6 +106,10 @@ def lock_automation_obsoleto():
 
         return True
 
+    lock_expirado = datetime.now() - creado > timedelta(
+        minutes=LOCK_MAX_AGE_MINUTES
+    )
+
     try:
 
         os.kill(
@@ -111,9 +122,9 @@ def lock_automation_obsoleto():
 
         return True
 
-    return datetime.now() - creado > timedelta(
-        minutes=LOCK_MAX_AGE_MINUTES
-    )
+    except Exception:
+
+        return lock_expirado
 
 
 def limpiar_lock_obsoleto():
@@ -186,7 +197,481 @@ def formatear_fecha_jira(fecha):
     )
 
 
-def construir_issue_dummy(issue_type, repository_path):
+def normalizar_fecha_jira_desde_texto(valor):
+
+    texto = str(
+        valor or ""
+    ).strip()
+
+    if not texto:
+
+        return ""
+
+    for formato in [
+        "%Y-%m-%d",
+        "%d/%m/%Y",
+        "%d-%m-%Y",
+        "%d/%b/%y %I:%M %p"
+    ]:
+
+        try:
+
+            fecha = datetime.strptime(
+                texto,
+                formato
+            )
+
+            return formatear_fecha_jira(
+                fecha
+            )
+
+        except ValueError:
+
+            continue
+
+    return texto
+
+
+def obtener_state_path_crq(crq_id):
+
+    asegurar_directorio_automation()
+    nombre = construir_nombre_archivo_crq(
+        crq_id
+    )
+    return AUTOMATION_DIR / f"{nombre}_state.json"
+
+
+def obtener_plan_base_compartido(planning_data):
+
+    for tipo_id in [
+        "integrado",
+        "accepted"
+    ]:
+
+        for plan in planning_data.get(
+            "plans",
+            []
+        ):
+
+            if plan.get("tipo_id") == tipo_id:
+
+                return plan
+
+    planes = planning_data.get(
+        "plans",
+        []
+    )
+    return planes[0] if planes else None
+
+
+def construir_identificador_test_set(test_set):
+
+    payload = dict(
+        test_set.get(
+            "issue_payload",
+            {}
+        )
+    )
+
+    return "|".join(
+        [
+            str(test_set.get("path", "")).strip(),
+            str(payload.get("summary", "")).strip(),
+            str(payload.get("repository_path", "")).strip()
+        ]
+    )
+
+
+def construir_identificador_test(test_set, test):
+
+    payload = dict(
+        test.get(
+            "issue_payload",
+            {}
+        )
+    )
+
+    return "|".join(
+        [
+            str(test_set.get("path", "")).strip(),
+            str(test.get("field", "")).strip(),
+            str(payload.get("summary", "")).strip()
+        ]
+    )
+
+
+def construir_identificador_test_case(test_set, test, case, case_index):
+
+    payload = dict(
+        test.get(
+            "issue_payload",
+            {}
+        )
+    )
+
+    case = dict(
+        case or {}
+    )
+
+    return "|".join(
+        [
+            str(test_set.get("path", "")).strip(),
+            str(test.get("field", "")).strip(),
+            str(payload.get("summary", "")).strip(),
+            str(case_index),
+            str(case.get("case_name", "")).strip(),
+            str(case.get("response_field_path", "")).strip(),
+            str(case.get("request_value", "")).strip()
+        ]
+    )
+
+
+def construir_summary_test_case(crq_id, test_payload, test_index, case):
+
+    base_summary = str(
+        test_payload.get("summary", f"{crq_id} | Test {test_index}")
+    ).strip() or f"{crq_id} | Test {test_index}"
+
+    case = dict(
+        case or {}
+    )
+    case_type = str(
+        case.get("case_type", "")
+    ).strip()
+    case_name = str(
+        case.get("case_name", "")
+    ).strip()
+    field_name = str(
+        case.get("field_name", "")
+    ).strip()
+
+    summary = base_summary
+
+    for suffix in [case_type]:
+
+        if suffix and suffix.lower() not in summary.lower():
+
+            summary = f"{summary} | {suffix}"
+
+    if nombre_caso_personalizado(field_name, case_name, case_type) and case_name.lower() not in summary.lower():
+
+        summary = f"{summary} | {case_name}"
+
+    return summary
+
+
+def nombre_caso_personalizado(field_name, case_name, case_type):
+
+    normalized_name = str(
+        case_name or ""
+    ).strip().lower()
+
+    if not normalized_name:
+
+        return False
+
+    normalized_field = str(
+        field_name or ""
+    ).strip().lower()
+    normalized_case_type = str(
+        case_type or ""
+    ).strip().lower()
+
+    if normalized_case_type and normalized_name == normalized_case_type:
+
+        return False
+
+    generic_candidates = {
+        f"{normalized_field} | {normalized_case_type}".strip(),
+        f"{normalized_field}|{normalized_case_type}".strip()
+    }
+
+    if normalized_name in generic_candidates:
+
+        return False
+
+    if normalized_field and normalized_name.startswith(f"{normalized_field} | caso "):
+
+        return False
+
+    return True
+
+
+def construir_descripcion_test_case(test_payload, case):
+
+    base_description = str(
+        test_payload.get("description", "")
+    ).strip()
+    case = dict(
+        case or {}
+    )
+
+    detail_lines = []
+
+    for label, value in [
+        ("Tipo de caso", case.get("case_type", "")),
+        ("Campo objetivo", case.get("response_field_path", "")),
+        ("Condición", case.get("comparison_operator", "")),
+        ("Valor enviado en request", case.get("request_value", "")),
+        ("Resultado esperado", case.get("expected_value", ""))
+    ]:
+
+        clean_value = str(value or "").strip()
+
+        if clean_value:
+
+            detail_lines.append(
+                f"{label}: {clean_value}"
+            )
+
+    if not detail_lines:
+
+        return base_description
+
+    details_block = "\n".join(
+        detail_lines
+    )
+
+    if base_description:
+
+        return f"{base_description}\n\n{details_block}"
+
+    return details_block
+
+
+def construir_payload_planning_desde_crq(
+    crq,
+    planning_data
+):
+
+    config = obtener_configuracion_jira_automatizacion()
+    validar_configuracion_jira(
+        config
+    )
+
+    crq_id = str(
+        crq.get("crq", "")
+    ).strip()
+
+    if not crq_id:
+
+        raise JiraPlaywrightRuntimeError(
+            "El CRQ actual no tiene identificador para construir la automatización de Jira/Xray."
+        )
+
+    workflow = []
+    test_step_ids = {}
+    test_set_step_ids = {}
+    base_plan = obtener_plan_base_compartido(
+        planning_data
+    )
+
+    if base_plan:
+
+        for test_set_index, test_set in enumerate(base_plan.get("test_sets", []), start=1):
+
+            if not test_set.get("enabled", True):
+
+                continue
+
+            test_refs = []
+
+            for test_index, test in enumerate(test_set.get("tests", []), start=1):
+
+                field_name = str(
+                    test.get("field", "")
+                ).strip()
+
+                if not field_name:
+
+                    continue
+
+                test_payload = dict(
+                    test.get("issue_payload", {})
+                )
+
+                draft_cases = list(
+                    test.get("draft_cases", [])
+                ) or [
+                    {
+                        "case_name": f"{field_name} | Base",
+                        "field_name": field_name,
+                        "action": test_payload.get("actions", test.get("actions", "")),
+                        "response_field_path": str(test.get("field", "")).strip(),
+                        "request_value": ""
+                    }
+                ]
+
+                for case_index, case in enumerate(draft_cases, start=1):
+                    case = dict(
+                        case or {}
+                    )
+                    case.setdefault("field_name", field_name)
+
+                    test_signature = construir_identificador_test_case(
+                        test_set,
+                        test,
+                        case,
+                        case_index
+                    )
+
+                    if test_signature in test_step_ids:
+
+                        test_refs.append(
+                            test_step_ids[test_signature]
+                        )
+                        continue
+
+                    summary = construir_summary_test_case(
+                        crq_id,
+                        test_payload,
+                        test_index,
+                        case
+                    )
+
+                    description = construir_descripcion_test_case(
+                        test_payload,
+                        case
+                    )
+
+                    actions = str(
+                        dict(case).get(
+                            "action",
+                            test_payload.get("actions", test.get("actions", ""))
+                        )
+                    ).strip()
+
+                    step_id = f"test_{len(test_step_ids) + 1}"
+                    workflow.append(
+                        {
+                            "id": step_id,
+                            "kind": "issue",
+                            "issue": {
+                                "type": "Test",
+                                "summary": summary,
+                                "description": description,
+                                "actions": actions,
+                                "repository_path": test_payload.get("repository_path", ""),
+                                "auto_submit": True
+                            }
+                        }
+                    )
+                    test_step_ids[test_signature] = step_id
+                    test_refs.append(
+                        step_id
+                    )
+
+            test_set_signature = construir_identificador_test_set(
+                test_set
+            )
+
+            if test_set_signature in test_set_step_ids:
+
+                continue
+
+            test_set_payload = dict(
+                test_set.get("issue_payload", {})
+            )
+            step_id = f"test_set_{len(test_set_step_ids) + 1}"
+            workflow.append(
+                {
+                    "id": step_id,
+                    "kind": "issue",
+                    "issue": {
+                        "type": "Test Set",
+                        "summary": test_set_payload.get("summary", f"{crq_id} | Test Set {test_set_index}"),
+                        "description": test_set_payload.get("description", ""),
+                        "repository_path": test_set_payload.get("repository_path", ""),
+                        "test_key_refs": test_refs,
+                        "auto_submit": True
+                    }
+                }
+            )
+            test_set_step_ids[test_set_signature] = step_id
+
+    for plan_index, plan in enumerate(planning_data.get("plans", []), start=1):
+
+        enabled_test_set_refs = []
+
+        for test_set in plan.get("test_sets", []):
+
+            if not test_set.get("enabled", True):
+
+                continue
+
+            signature = construir_identificador_test_set(
+                test_set
+            )
+            ref = test_set_step_ids.get(
+                signature
+            )
+
+            if ref and ref not in enabled_test_set_refs:
+
+                enabled_test_set_refs.append(
+                    ref
+                )
+
+        plan_payload = dict(
+            plan.get("issue_payload", {})
+        )
+
+        workflow.append(
+            {
+                "id": f"test_plan_{plan_index}",
+                "kind": "issue",
+                "issue": {
+                    "type": "Test Plan",
+                    "summary": plan_payload.get("summary", f"[{crq_id}] {plan.get('tipo_nombre', 'Plan')}"),
+                    "description": plan_payload.get("description", ""),
+                    "typology_name": plan_payload.get("typology_name", plan.get("tipo_nombre", "")),
+                    "begin_date": normalizar_fecha_jira_desde_texto(plan_payload.get("begin_date", "")),
+                    "end_date": normalizar_fecha_jira_desde_texto(plan_payload.get("end_date", "")),
+                    "associated_test_set_key_refs": enabled_test_set_refs,
+                    "auto_submit": True
+                }
+            }
+        )
+
+    if not workflow:
+
+        raise JiraPlaywrightRuntimeError(
+            "No hay Tests, Test Sets o Test Plans listos para crear en Jira/Xray."
+        )
+
+    state_path = obtener_state_path_crq(
+        crq_id
+    )
+
+    return {
+        "mode": "planning_e2e",
+        "source": "test_case_design",
+        "browser_channel": config.get(
+            "jira_browser_channel",
+            "chrome"
+        ),
+        "start_url": config.get(
+            "jira_base_url",
+            ""
+        ),
+        "project": {
+            "key": config.get(
+                "jira_project_key",
+                ""
+            ),
+            "name": config.get(
+                "jira_project_name",
+                ""
+            )
+        },
+        "state_path": str(
+            state_path
+        ),
+        "workflow": workflow
+    }
+
+
+def obtener_contexto_dummy():
 
     timestamp = datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -194,11 +679,120 @@ def construir_issue_dummy(issue_type, repository_path):
     hoy = datetime.now()
     hace_semana = hoy - timedelta(days=7)
 
+    return {
+        "timestamp": timestamp,
+        "today": hoy,
+        "week_ago": hace_semana,
+        "crq": DUMMY_CRQ,
+        "domain": DUMMY_DOMAIN
+    }
+
+
+def construir_summary_dummy_test(numero, contexto):
+
+    return (
+        f"[DUMMY] Test {numero} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def construir_summary_dummy_test_set(numero, contexto):
+
+    suffix = f" {numero}" if str(numero).strip() else ""
+
+    return (
+        f"[DUMMY] Test Set{suffix} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def construir_summary_dummy_test_plan(
+    typology_name,
+    contexto
+):
+
+    summary_tag = TYPOLOGY_BY_PLAN_NAME.get(
+        typology_name,
+        {}
+    ).get(
+        "summary_tag",
+        f"#{typology_name}"
+    )
+
+    return (
+        f"{contexto['crq']} | "
+        f"{summary_tag} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def cargar_estado_dummy_e2e():
+
+    if not STATE_PATH.exists():
+
+        return {}
+
+    with open(
+        STATE_PATH,
+        "r",
+        encoding="utf-8"
+    ) as archivo:
+
+        return json.load(
+            archivo
+        )
+
+
+def obtener_test_set_keys_dummy():
+
+    completed = dict(
+        cargar_estado_dummy_e2e().get(
+            "completed",
+            {}
+        )
+    )
+    keys = [
+        completed.get(step_id, {}).get("jira_key", "")
+        for step_id in (
+            "test_set_1",
+            "test_set_2"
+        )
+    ]
+
+    keys = [
+        key
+        for key in keys
+        if key
+    ]
+
+    if keys:
+
+        return keys
+
+    fallback = [
+        data.get("jira_key", "")
+        for data in completed.values()
+        if data.get("type") == "Test Set" and data.get("jira_key")
+    ]
+
+    return fallback
+
+
+def construir_issue_dummy(issue_type, repository_path):
+
+    contexto = obtener_contexto_dummy()
+
     if issue_type == "Test Set":
 
         return {
             "type": issue_type,
-            "summary": f"[DUMMY] Test Set | Movimientos TDC | {timestamp}",
+            "summary": construir_summary_dummy_test_set(
+                None,
+                contexto
+            ),
             "description": (
                 "Test Set dummy generado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
                 "Incluye nombre y descripción de prueba para revisar la automatización antes de conectarla al flujo real."
@@ -212,27 +806,39 @@ def construir_issue_dummy(issue_type, repository_path):
     if issue_type == "Test Plan":
 
         typology_name = "Integration"
+        test_set_keys = obtener_test_set_keys_dummy()
 
         return {
             "type": issue_type,
-            "summary": f"CRQ-DUMMY | {typology_name} | {timestamp}",
+            "summary": construir_summary_dummy_test_plan(
+                typology_name,
+                contexto
+            ),
             "description": (
                 "Test Plan dummy generado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
                 f"Tipología: {typology_name}\n"
                 "Se usará después como base para la integración con el flujo real por CRQ."
             ),
-            "labels": TYPOLOGY_BY_PLAN_NAME[typology_name]["label"],
+            "labels": "",
             "repository_path": "",
             "typology_name": typology_name,
-            "begin_date": formatear_fecha_jira(hace_semana),
-            "end_date": formatear_fecha_jira(hoy),
-            "associated_test_keys": [],
+            "begin_date": formatear_fecha_jira(
+                contexto["week_ago"]
+            ),
+            "end_date": formatear_fecha_jira(
+                contexto["today"]
+            ),
+            "associated_test_set_keys": test_set_keys,
             "auto_submit": True
         }
 
     return {
         "type": issue_type,
-        "summary": f"[DUMMY] {issue_type} de prueba | {timestamp}",
+        "summary": (
+            f"[DUMMY] {issue_type} de prueba | "
+            f"{contexto['domain']} | "
+            f"{contexto['timestamp']}"
+        ),
         "description": (
             "Registro de prueba generado desde el Home de CertFlow para validar "
             "la automatización asistida con Playwright.\n\n"
@@ -303,15 +909,11 @@ def construir_payload_dummy_e2e():
         config
     )
 
+    contexto = obtener_contexto_dummy()
     repository_path = config.get(
         "jira_test_repository_path",
         ""
     )
-    timestamp = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-    hoy = datetime.now()
-    hace_semana = hoy - timedelta(days=7)
 
     return {
         "mode": "dummy_e2e",
@@ -341,7 +943,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test",
-                    "summary": f"[DUMMY] Test 1 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test(
+                        1,
+                        contexto
+                    ),
                     "description": "Test dummy 1 para validar el E2E completo de Jira/Xray.",
                     "actions": (
                         "1. Ejecutar flujo dummy.\n"
@@ -357,7 +962,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test",
-                    "summary": f"[DUMMY] Test 2 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test(
+                        2,
+                        contexto
+                    ),
                     "description": "Test dummy 2 para validar el E2E completo de Jira/Xray.",
                     "actions": (
                         "1. Ejecutar flujo dummy.\n"
@@ -373,7 +981,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Set",
-                    "summary": f"[DUMMY] Test Set 1 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test_set(
+                        1,
+                        contexto
+                    ),
                     "description": "Test Set dummy 1 asociado al Test dummy 1.",
                     "labels": "",
                     "repository_path": repository_path,
@@ -388,7 +999,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Set",
-                    "summary": f"[DUMMY] Test Set 2 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test_set(
+                        2,
+                        contexto
+                    ),
                     "description": "Test Set dummy 2 asociado al Test dummy 2.",
                     "labels": "",
                     "repository_path": repository_path,
@@ -403,15 +1017,22 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Plan",
-                    "summary": f"CRQ-DUMMY | Integration | {timestamp}",
+                    "summary": construir_summary_dummy_test_plan(
+                        "Integration",
+                        contexto
+                    ),
                     "description": "Test Plan dummy asociado a los tests creados en el flujo E2E.",
-                    "labels": TYPOLOGY_BY_PLAN_NAME["Integration"]["label"],
+                    "labels": "",
                     "typology_name": "Integration",
-                    "begin_date": formatear_fecha_jira(hace_semana),
-                    "end_date": formatear_fecha_jira(hoy),
-                    "associated_test_key_refs": [
-                        "test_1",
-                        "test_2"
+                    "begin_date": formatear_fecha_jira(
+                        contexto["week_ago"]
+                    ),
+                    "end_date": formatear_fecha_jira(
+                        contexto["today"]
+                    ),
+                    "associated_test_set_key_refs": [
+                        "test_set_1",
+                        "test_set_2"
                     ],
                     "auto_submit": True
                 }
@@ -512,4 +1133,77 @@ def lanzar_dummy_e2e_desde_home():
     )
 
 
+def construir_payload_dummy_test_plan_only():
 
+    config = obtener_configuracion_jira_automatizacion()
+    validar_configuracion_jira(
+        config
+    )
+
+    test_set_keys = obtener_test_set_keys_dummy()
+
+    if not test_set_keys:
+
+        raise JiraPlaywrightRuntimeError(
+            "No se encontraron Test Set dummy previos en el estado persistido. Primero ejecuta la prueba E2E completa para crear los Test y Test Set base."
+        )
+
+    contexto = obtener_contexto_dummy()
+
+    return {
+        "mode": "dummy_test_plan_only",
+        "source": "home_dummy_test_plan_only",
+        "browser_channel": config.get(
+            "jira_browser_channel",
+            "chrome"
+        ),
+        "start_url": config.get(
+            "jira_base_url",
+            ""
+        ),
+        "project": {
+            "key": config.get(
+                "jira_project_key",
+                ""
+            ),
+            "name": config.get(
+                "jira_project_name",
+                ""
+            )
+        },
+        "workflow": [
+            {
+                "kind": "issue",
+                "issue": {
+                    "type": "Test Plan",
+                    "summary": construir_summary_dummy_test_plan(
+                        "Integration",
+                        contexto
+                    ),
+                    "description": (
+                        "Test Plan dummy relanzado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
+                        "Este flujo reutiliza únicamente los Test Set ya creados previamente."
+                    ),
+                    "labels": "",
+                    "typology_name": "Integration",
+                    "begin_date": formatear_fecha_jira(
+                        contexto["week_ago"]
+                    ),
+                    "end_date": formatear_fecha_jira(
+                        contexto["today"]
+                    ),
+                    "associated_test_set_keys": test_set_keys,
+                    "auto_submit": True
+                }
+            }
+        ]
+    }
+
+
+def lanzar_dummy_test_plan_desde_home():
+
+    payload = construir_payload_dummy_test_plan_only()
+
+    return lanzar_automatizacion_jira(
+        payload
+    )

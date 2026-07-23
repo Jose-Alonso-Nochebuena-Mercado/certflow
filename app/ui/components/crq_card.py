@@ -36,7 +36,8 @@ class CRQCard(ctk.CTkFrame):
         crq,
         callback_continuar,
         callback_eliminar,
-        callback_agregar
+        callback_agregar,
+        callback_probar
     ):
 
 
@@ -57,6 +58,7 @@ class CRQCard(ctk.CTkFrame):
         self.callback_continuar = callback_continuar
         self.callback_eliminar = callback_eliminar
         self.callback_agregar = callback_agregar
+        self.callback_probar = callback_probar
 
         self.typology_map = obtener_mapa_typology()
 
@@ -251,6 +253,30 @@ class CRQCard(ctk.CTkFrame):
             padx=(8, 0)
         )
 
+        probar = ctk.CTkButton(
+            acciones,
+            text="Run",
+            width=54,
+            height=32,
+            corner_radius=16,
+            font=(
+                "Arial",
+                11,
+                "bold"
+            ),
+            fg_color=SURFACE_ALT,
+            text_color=PRIMARY,
+            hover_color=ACCENT_SOFT,
+            border_width=1,
+            border_color=BORDER,
+            command=self.probar
+        )
+
+        probar.pack(
+            side="left",
+            padx=(8, 0)
+        )
+
 
         continuar = ctk.CTkButton(
             acciones,
@@ -372,5 +398,13 @@ class CRQCard(ctk.CTkFrame):
 
 
         self.callback_agregar(
+            self.crq
+        )
+
+
+    def probar(self):
+
+
+        self.callback_probar(
             self.crq
         )

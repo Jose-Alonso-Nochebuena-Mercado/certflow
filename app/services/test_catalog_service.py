@@ -861,6 +861,10 @@ def agregar_version_catalogo(
                 "label": version_label
             }
 
+            if transaction_repository_folder:
+
+                nueva_version["repository_folder"] = transaction_repository_folder
+
             if bruno_request:
 
                 nueva_version["bruno_request"] = bruno_request
@@ -894,6 +898,95 @@ def agregar_version_catalogo(
     )
 
     return version_id
+
+
+def actualizar_repository_folder_catalogo(
+    service_id,
+    transaction_id,
+    repository_folder,
+    version_id=None
+):
+
+    service_id = str(service_id or "").strip()
+    transaction_id = str(transaction_id or "").strip()
+    version_id = normalizar_version_id(
+        version_id
+    )
+
+    if not service_id or not transaction_id:
+
+        raise CatalogoServiciosError(
+            "Debes indicar servicio y transacción para actualizar la carpeta Jira/Xray."
+        )
+
+    repository_folder = normalizar_texto_simple(
+        repository_folder
+    )
+
+    catalogo = obtener_catalogo_servicios()
+    servicios = list(
+        catalogo.get(
+            "services",
+            []
+        )
+    )
+
+    actualizado = False
+
+    for service in servicios:
+
+        if service.get("id") != service_id:
+
+            continue
+
+        for transaccion_catalogo in service.get(
+            "transactions",
+            []
+        ):
+
+            if transaccion_catalogo.get("id") != transaction_id:
+
+                continue
+
+            if version_id:
+
+                for version in transaccion_catalogo.get(
+                    "versions",
+                    []
+                ):
+
+                    if normalizar_version_id(
+                        version.get("id")
+                    ) != version_id:
+
+                        continue
+
+                    version["repository_folder"] = repository_folder
+                    actualizado = True
+                    break
+
+            else:
+
+                transaccion_catalogo["repository_folder"] = repository_folder
+                actualizado = True
+
+            if actualizado:
+
+                transaccion_catalogo["repository_folder"] = repository_folder
+
+            break
+
+    if not actualizado:
+
+        raise CatalogoServiciosError(
+            f"No se encontró la transacción `{transaction_id}` dentro del servicio `{service_id}`."
+        )
+
+    guardar_catalogo_servicios(
+        {
+            "services": servicios
+        }
+    )
 
 
 
@@ -1122,9 +1215,12 @@ def resolver_request(
             )
         ),
         "repository_folder": normalizar_texto_simple(
-            transaccion.get(
+            (version or {}).get(
                 "repository_folder",
-                ""
+                transaccion.get(
+                    "repository_folder",
+                    ""
+                )
             )
         ),
         "version_id": version_normalizada,

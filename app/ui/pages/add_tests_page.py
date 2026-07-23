@@ -3,12 +3,13 @@ import customtkinter as ctk
 from app.services.crq_service import normalizar_certificaciones
 from app.services.discovery_service import cargar_discovery
 from app.services.metadata_service import cargar_metadata
-from app.services.planning_service import actualizar_planning_con_seleccion
+from app.services.planning_service import actualizar_planning_con_seleccion, cargar_planning_crq
 from app.services.test_catalog_service import (
     CatalogoServiciosError,
     agregar_servicio_catalogo,
     agregar_transaccion_catalogo,
     agregar_version_catalogo,
+    actualizar_repository_folder_catalogo,
     construir_bruno_request,
     construir_descubrimiento_catalogo,
     obtener_servicios,
@@ -71,6 +72,8 @@ class AddTestsPage(BasePage):
         self.auto_execute_enabled = False
         self.last_request_key = None
         self.last_execution_result = None
+        self.repository_path_input = None
+        self.planning_actual = None
 
         super().__init__(
             parent,
@@ -104,6 +107,9 @@ class AddTestsPage(BasePage):
             crq_id
         )
         self.discovery_actual = cargar_discovery(
+            crq_id
+        )
+        self.planning_actual = cargar_planning_crq(
             crq_id
         )
 
@@ -270,6 +276,59 @@ class AddTestsPage(BasePage):
         self.request_preview.pack(
             anchor="w",
             pady=(16, 0)
+        )
+
+        repository_frame = ctk.CTkFrame(
+            contenido,
+            fg_color="transparent"
+        )
+
+        repository_frame.pack(
+            fill="x",
+            pady=(14, 0)
+        )
+
+        repository_title = ctk.CTkLabel(
+            repository_frame,
+            text="Repository path para Jira/Xray",
+            font=get_font(BODY),
+            text_color=TEXT_PRIMARY
+        )
+
+        repository_title.pack(
+            anchor="w",
+            pady=(0, 6)
+        )
+
+        repository_hint = ctk.CTkLabel(
+            repository_frame,
+            text=(
+                "Este path aplica a todos los Tests y Test Sets de la request seleccionada. "
+                "Si ya se capturó antes para esta transacción, aparecerá aquí por defecto y seguirá siendo editable."
+            ),
+            font=get_font(SMALL),
+            text_color=TEXT_MUTED,
+            justify="left",
+            wraplength=940
+        )
+
+        repository_hint.pack(
+            anchor="w",
+            pady=(0, 8)
+        )
+
+        self.repository_path_input = ctk.CTkEntry(
+            repository_frame,
+            height=40,
+            corner_radius=12,
+            fg_color=SURFACE_ALT,
+            border_color=BORDER,
+            text_color=TEXT_PRIMARY,
+            placeholder_text="Ejemplo: Movimientos TDC"
+        )
+
+        self.repository_path_input.pack(
+            fill="x"
         )
 
         acciones_catalogo = ctk.CTkFrame(
@@ -598,13 +657,13 @@ class AddTestsPage(BasePage):
 
         guardar = ctk.CTkButton(
             footer,
-            text="Guardar en planning",
-            width=180,
+            text="Continuar con diseño de tests",
+            width=240,
             height=40,
             corner_radius=20,
             fg_color=PRIMARY,
             hover_color=PRIMARY_LIGHT,
-            command=self.guardar_en_planning
+            command=self.continuar_a_diseno_tests
         )
 
         guardar.pack(
@@ -614,7 +673,7 @@ class AddTestsPage(BasePage):
 
         ayuda = ctk.CTkLabel(
             footer,
-            text="El planning se va armando localmente; la sincronización real con Jira/Xray será el siguiente paso del flujo.",
+            text="Primero se guarda la selección en planning y enseguida se abre la pantalla para diseñar bodies, escenarios y expectativas por campo.",
             font=get_font(SMALL),
             text_color=TEXT_MUTED,
             justify="left",
@@ -861,6 +920,10 @@ class AddTestsPage(BasePage):
             )
         )
 
+        self.sincronizar_repository_path_input(
+            request_info
+        )
+
 
     def ejecutar_request_automatico(self):
 
@@ -1010,6 +1073,8 @@ class AddTestsPage(BasePage):
         self.actualizar_estado_ejecucion(
             resultado
         )
+
+        self.rehidratar_estado_desde_planning()
 
         self.render_object_map()
         self.render_selected_tests()
@@ -1408,9 +1473,18 @@ class AddTestsPage(BasePage):
             "coverage",
             {}
         )
+        resumen_local = self.obtener_resumen_cobertura_local(
+            nodo
+        )
         existe_actual = bool(
             coverage.get("exists")
         )
+        direct_complete = bool(
+            resumen_local["direct_complete"]
+        ) or existe_actual
+        direct_any = bool(
+            resumen_local["direct_any"]
+        ) or existe_actual
         children = nodo.get(
             "children",
             []
@@ -1418,15 +1492,26 @@ class AddTestsPage(BasePage):
 
         if not children:
 
-            if existe_actual:
+            if direct_complete:
 
                 return {
                     "status": "complete",
-                    "label": "Cubierto",
+                    "label": "Cubierto" if existe_actual else "Completo",
                     "fg_color": "#EAF7F0",
                     "border_color": "#B9E2C8",
                     "badge_color": "#EAF7F0",
                     "badge_text_color": "#2E7D32"
+                }
+
+            if direct_any:
+
+                return {
+                    "status": "partial",
+                    "label": "Parcial",
+                    "fg_color": "#FFF7D6",
+                    "border_color": "#F2D77C",
+                    "badge_color": "#FFF7D6",
+                    "badge_text_color": "#8A6A00"
                 }
 
             return {
@@ -1455,18 +1540,18 @@ class AddTestsPage(BasePage):
             for child in child_states
         )
 
-        if existe_actual and all_children_complete:
+        if direct_complete and all_children_complete:
 
             return {
                 "status": "complete",
-                "label": "Cubierto",
+                "label": "Cubierto" if existe_actual else "Completo",
                 "fg_color": "#EAF7F0",
                 "border_color": "#B9E2C8",
                 "badge_color": "#EAF7F0",
                 "badge_text_color": "#2E7D32"
             }
 
-        if existe_actual or any_child_with_plan:
+        if direct_any or any_child_with_plan:
 
             return {
                 "status": "partial",
@@ -1484,6 +1569,70 @@ class AddTestsPage(BasePage):
             "border_color": BORDER,
             "badge_color": "#F4F6FA",
             "badge_text_color": TEXT_MUTED
+        }
+
+
+    def obtener_resumen_cobertura_local(self, nodo):
+
+        state = self.object_states.get(
+            nodo["item"]["path"],
+            {}
+        )
+
+        tests = [
+            test
+            for test in nodo["item"].get(
+                "tests",
+                []
+            )
+            if test.get("field")
+        ]
+
+        selected = state.get(
+            "selected"
+        )
+        is_selected = bool(
+            selected and selected.get()
+        )
+
+        if not tests:
+
+            return {
+                "direct_any": is_selected,
+                "direct_complete": is_selected
+            }
+
+        field_vars = state.get(
+            "field_vars",
+            {}
+        )
+
+        if not is_selected:
+
+            return {
+                "direct_any": False,
+                "direct_complete": False
+            }
+
+        covered_fields = 0
+
+        for test in tests:
+
+            field_name = test.get(
+                "field",
+                ""
+            )
+            variable = field_vars.get(
+                field_name
+            )
+
+            if variable and variable.get():
+
+                covered_fields += 1
+
+        return {
+            "direct_any": covered_fields > 0,
+            "direct_complete": covered_fields == len(tests)
         }
 
 
@@ -2042,13 +2191,13 @@ class AddTestsPage(BasePage):
                 )
 
 
-    def guardar_en_planning(self):
+    def continuar_a_diseno_tests(self):
 
         if not self.request_info or not self.discovery_result:
 
             MessageBox(
                 self,
-                "Ejecuta primero una request del catálogo antes de guardar en el planning.",
+                "Ejecuta primero una request del catálogo antes de continuar al diseño de tests.",
                 "warning"
             )
             return
@@ -2083,32 +2232,91 @@ class AddTestsPage(BasePage):
 
             MessageBox(
                 self,
-                "Selecciona al menos un nodo del mapa antes de guardar.",
+                "Selecciona al menos un nodo del mapa antes de continuar.",
                 "warning"
             )
             return
 
-        actualizar_planning_con_seleccion(
+        repository_path = self.obtener_repository_path_actual()
+
+        if not repository_path:
+
+            MessageBox(
+                self,
+                "Captura el repository path antes de continuar. Ese valor se reutilizará para todos los Tests y Test Sets de esta request.",
+                "warning"
+            )
+            return
+
+        self.request_info["repository_folder"] = repository_path
+
+        service_id = self.request_info.get("service_id")
+        transaction_id = self.request_info.get("transaction_id")
+
+        if service_id and transaction_id:
+
+            try:
+
+                actualizar_repository_folder_catalogo(
+                    service_id,
+                    transaction_id,
+                    repository_path,
+                    version_id=self.request_info.get("version_id")
+                )
+
+            except CatalogoServiciosError as error:
+
+                MessageBox(
+                    self,
+                    str(error),
+                    "warning"
+                )
+                return
+
+        planning_data = actualizar_planning_con_seleccion(
             self.crq,
             self.request_info,
             seleccionados,
             self.metadata_actual,
             self.discovery_actual
         )
-
-        MessageBox(
-            self,
-            (
-                f"Se actualizaron {len(seleccionados)} test sets para {self.crq.get('crq', 'el CRQ')}\n\n"
-                "Integración se usa como base, Aceptación se replica desde Integración cuando aplica y Regresión se mantiene como línea separada."
-            ),
-            "success"
-        )
+        self.planning_actual = planning_data
 
         self.navigate(
-            "crq_detail",
-            crq=self.crq
+            "test_plan_design",
+            crq=self.crq,
+            planning_data=planning_data,
+            request_info=self.request_info,
+            response_data=(self.last_execution_result or {}).get(
+                "response"
+            )
         )
+
+
+    def sincronizar_repository_path_input(self, request_info):
+
+        if not self.repository_path_input:
+
+            return
+
+        valor = str(
+            (request_info or {}).get(
+                "repository_folder",
+                ""
+            ) or ""
+        ).strip()
+
+        self.repository_path_input.delete(0, "end")
+        self.repository_path_input.insert(0, valor)
+
+
+    def obtener_repository_path_actual(self):
+
+        if not self.repository_path_input:
+
+            return ""
+
+        return self.repository_path_input.get().strip()
 
 
     def get_selected_objects(self):
@@ -2139,6 +2347,108 @@ class AddTestsPage(BasePage):
                 )
 
         return resultado
+
+
+    def rehidratar_estado_desde_planning(self):
+
+        if not self.planning_actual or not self.request_info:
+
+            return
+
+        request_key = str(
+            self.request_info.get("request_key", "")
+        ).strip()
+
+        if not request_key:
+
+            return
+
+        selected_by_path = {}
+
+        for plan in self.planning_actual.get(
+            "plans",
+            []
+        ):
+
+            for test_set in plan.get(
+                "test_sets",
+                []
+            ):
+
+                source = dict(
+                    test_set.get("source", {})
+                )
+
+                if source.get("request_key") != request_key:
+
+                    continue
+
+                path = str(
+                    test_set.get("path", "")
+                ).strip()
+
+                if not path:
+
+                    continue
+
+                field_names = selected_by_path.setdefault(
+                    path,
+                    set()
+                )
+
+                for test in test_set.get(
+                    "tests",
+                    []
+                ):
+
+                    field_name = str(
+                        test.get("field", "")
+                    ).strip()
+
+                    if field_name:
+
+                        field_names.add(
+                            field_name
+                        )
+
+        for path, state in self.object_states.items():
+
+            selected_fields = selected_by_path.get(
+                path,
+                set()
+            )
+            selected_var = state.get(
+                "selected"
+            )
+
+            if selected_var:
+
+                selected_var.set(
+                    bool(selected_fields or path in selected_by_path)
+                )
+
+            field_vars = state.get(
+                "field_vars",
+                {}
+            )
+
+            if not field_vars:
+
+                continue
+
+            if selected_fields:
+
+                for field_name, variable in field_vars.items():
+
+                    variable.set(
+                        field_name in selected_fields
+                    )
+
+            elif path in selected_by_path:
+
+                for variable in field_vars.values():
+
+                    variable.set(True)
 
 
     def obtener_texto_estrategia(self):
