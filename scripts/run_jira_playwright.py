@@ -850,13 +850,21 @@ def completar_labels(page, value):
 
         return False
 
-    return completar_input(
+    return completar_multi_issue_picker(
         page,
-        ["Labels"],
-        value,
+        [
+            valor.strip()
+            for valor in str(value).split(",")
+            if valor.strip()
+        ],
+        "Labels",
         selectors=[
             "#labels-textarea",
-            "textarea[role='combobox'][id='labels-textarea']"
+            "textarea[role='combobox'][id='labels-textarea']",
+            "input[aria-label='Labels']"
+        ],
+        labels=[
+            "Labels"
         ]
     )
 
@@ -903,11 +911,39 @@ def completar_multi_issue_picker(
     for valor in valores:
 
         locator.click(timeout=4000)
+        try:
+
+            locator.press("Control+A")
+            locator.press("Backspace")
+
+        except Exception:
+
+            pass
         locator.type(
             valor,
             delay=20
         )
         page.wait_for_timeout(1200)
+
+        opcion = page.get_by_text(
+            re.compile(
+                rf"^{re.escape(valor)}(?:\s|$)",
+                re.IGNORECASE
+            )
+        ).first
+
+        try:
+
+            if opcion.count() > 0 and opcion.is_visible():
+
+                opcion.click(timeout=4000)
+                page.wait_for_timeout(800)
+                continue
+
+        except Exception:
+
+            pass
+
         locator.press("Enter")
         page.wait_for_timeout(800)
 
@@ -1400,10 +1436,16 @@ def rellenar_formulario(page, payload):
             issue.get("typology_name")
         )
 
-        abrir_tab_si_existe(
+        detalles_tab_abierta = abrir_tab_si_existe(
             page,
             "Tests Plan Details"
         )
+        if not detalles_tab_abierta:
+
+            abrir_tab_si_existe(
+                page,
+                "Tests"
+            )
         page.wait_for_timeout(1200)
 
         completar_fecha(
@@ -1471,6 +1513,11 @@ def rellenar_formulario(page, payload):
 
     if labels:
 
+        abrir_tab_si_existe(
+            page,
+            "General"
+        )
+        page.wait_for_timeout(800)
         print("Completando Labels...")
         completar_labels(
             page,
