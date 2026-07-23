@@ -707,6 +707,123 @@ def completar_selector_autocomplete(page, labels, value):
             return False
 
 
+def texto_normalizado(valor):
+
+    return re.sub(
+        r"\s+",
+        " ",
+        str(valor or "").strip().lower()
+    )
+
+
+def leer_texto_locator(locator):
+
+    for getter in [
+        lambda item: item.input_value(),
+        lambda item: item.get_attribute("value"),
+        lambda item: item.get_attribute("title"),
+        lambda item: item.get_attribute("aria-label"),
+        lambda item: item.inner_text(),
+        lambda item: item.text_content()
+    ]:
+
+        try:
+            value = str(getter(locator) or "").strip()
+
+            if value:
+
+                return value
+
+        except Exception:
+
+            continue
+
+    return ""
+
+
+def obtener_issue_type_actual(page):
+
+    locator = buscar_visible_por_selectores(
+        page,
+        [
+            "#issuetype-field",
+            "[name='issuetype']",
+            "[name='issuetype-field']",
+            "[data-field-id='issuetype'] input",
+            "[data-field-id='issuetype'] [role='combobox']"
+        ]
+    )
+
+    if locator is None:
+
+        locator = buscar_combo(
+            page,
+            ["Issue Type", "Issue type"]
+        )
+
+    if locator is None:
+
+        return ""
+
+    return leer_texto_locator(
+        locator
+    )
+
+
+def issue_type_configurado(page, expected_value):
+
+    actual = obtener_issue_type_actual(
+        page
+    )
+
+    if not actual:
+
+        return False
+
+    esperado = texto_normalizado(
+        expected_value
+    )
+    actual_normalizado = texto_normalizado(
+        actual
+    )
+
+    return esperado == actual_normalizado or esperado in actual_normalizado
+
+
+def completar_issue_type(page, issue_type):
+
+    if not issue_type:
+
+        return False
+
+    issue_type_ok = completar_combobox_jira_por_id(
+        page,
+        "#issuetype-field",
+        "issuetype-suggestions",
+        issue_type,
+        "Issue Type"
+    )
+
+    if not issue_type_ok:
+
+        issue_type_ok = completar_selector_autocomplete(
+            page,
+            ["Issue Type", "Issue type"],
+            issue_type
+        )
+
+    if issue_type_configurado(page, issue_type):
+
+        actual = obtener_issue_type_actual(
+            page
+        )
+        print(f"OK Issue Type confirmado -> {actual}")
+        return True
+
+    print(f"SKIP Issue Type no confirmado -> esperado: {issue_type}")
+    return False
+
+
 def completar_combobox_jira_por_id(
     page,
     selector,
@@ -1600,25 +1717,16 @@ def rellenar_formulario(page, payload):
         print("Project quedó sin cambios automáticos; se asume que Jira ya lo fijó o el combo visible no fue usable.")
 
     print("Completando Issue Type...")
-    issue_type_ok = completar_combobox_jira_por_id(
+    issue_type_ok = completar_issue_type(
         page,
-        "#issuetype-field",
-        "issuetype-suggestions",
-        issue.get("type"),
-        "Issue Type"
+        issue_type
     )
 
     if not issue_type_ok:
 
-        issue_type_ok = completar_selector_autocomplete(
-            page,
-            ["Issue Type", "Issue type"],
-            issue.get("type")
+        raise JiraAutomationError(
+            f"No se pudo confirmar el Issue Type '{issue_type}'. Se detiene la automatización para evitar crear un issue con tipo incorrecto."
         )
-
-    if not issue_type_ok:
-
-        print("Issue Type quedó sin cambios automáticos; se asume que Jira ya lo fijó o el combo visible no fue usable.")
 
     avanzar_next_si_aplica(
         page

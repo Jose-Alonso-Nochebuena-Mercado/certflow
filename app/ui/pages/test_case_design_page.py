@@ -574,6 +574,10 @@ class TestCaseDesignPage(BasePage):
                 self.crq,
                 self.planning_data
             )
+
+            if not self.confirmar_preview_creacion(payload):
+                return
+
             payload_path = lanzar_automatizacion_jira(
                 payload
             )
@@ -588,6 +592,89 @@ class TestCaseDesignPage(BasePage):
 
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
         self.navigate("crq_detail", crq=self.crq)
+
+
+    def confirmar_preview_creacion(self, payload):
+        decision = {
+            "accepted": False
+        }
+
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Preview Jira/Xray")
+        dialog.geometry("920x660")
+        dialog.configure(fg_color=BACKGROUND)
+        dialog.transient(self.winfo_toplevel())
+        dialog.grab_set()
+
+        wrapper = ctk.CTkFrame(dialog, fg_color="transparent")
+        wrapper.pack(fill="both", expand=True, padx=24, pady=24)
+
+        ctk.CTkLabel(wrapper, text="Resumen previo de creación", font=get_font(TITLE), text_color=PRIMARY).pack(anchor="w")
+        ctk.CTkLabel(wrapper, text="Revisa el orden y el tipo de issue antes de lanzar la automatización. Si algo no cuadra, cancela y corrige el diseño.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=840, justify="left").pack(anchor="w", pady=(8, 14))
+
+        resumen = self.construir_resumen_payload(payload)
+        ctk.CTkLabel(wrapper, text=resumen["headline"], font=get_font(BODY), text_color=PRIMARY, justify="left", wraplength=840).pack(anchor="w", pady=(0, 10))
+
+        preview = ctk.CTkTextbox(wrapper, height=420, corner_radius=14, border_width=1, border_color=BORDER, fg_color=SURFACE, text_color=TEXT_PRIMARY, wrap="word")
+        preview.pack(fill="both", expand=True)
+        preview.insert("1.0", resumen["detail"])
+        preview.configure(state="disabled")
+
+        actions = ctk.CTkFrame(wrapper, fg_color="transparent")
+        actions.pack(fill="x", pady=(16, 0))
+
+        def cancelar():
+            dialog.destroy()
+
+        def confirmar():
+            decision["accepted"] = True
+            dialog.destroy()
+
+        ctk.CTkButton(actions, text="Cancelar", width=140, height=40, corner_radius=20, command=cancelar, **SECONDARY_BUTTON).pack(side="right")
+        ctk.CTkButton(actions, text="Crear en Jira/Xray", width=180, height=40, corner_radius=20, fg_color=PRIMARY, hover_color=PRIMARY_LIGHT, text_color="#FFFFFF", command=confirmar).pack(side="right", padx=(0, 10))
+
+        self.wait_window(dialog)
+        return decision["accepted"]
+
+
+    def construir_resumen_payload(self, payload):
+        workflow = list(payload.get("workflow", []))
+        counts = {
+            "Test": 0,
+            "Test Set": 0,
+            "Test Plan": 0
+        }
+        lines = []
+
+        for index, step in enumerate(workflow, start=1):
+            issue = dict(step.get("issue", {}))
+            issue_type = str(issue.get("type", "Sin tipo")).strip() or "Sin tipo"
+            counts[issue_type] = counts.get(issue_type, 0) + 1
+            summary = str(issue.get("summary", "Sin summary")).strip() or "Sin summary"
+            ref_text = ""
+
+            if issue_type == "Test Set":
+                ref_text = f" | tests asociados: {len(issue.get('test_key_refs', []))}"
+            elif issue_type == "Test Plan":
+                ref_text = f" | test sets asociados: {len(issue.get('associated_test_set_key_refs', []))}"
+
+            lines.append(f"{index:02d}. {issue_type} | {summary}{ref_text}")
+
+        headline = (
+            f"Se crearán {len(workflow)} issues: "
+            f"{counts.get('Test', 0)} Tests, "
+            f"{counts.get('Test Set', 0)} Test Sets y "
+            f"{counts.get('Test Plan', 0)} Test Plans."
+        )
+
+        detail = "\n".join(lines)
+        if not detail:
+            detail = "No hay pasos para crear."
+
+        return {
+            "headline": headline,
+            "detail": detail
+        }
 
 
     def contar_elementos_planificados(self):
