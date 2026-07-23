@@ -338,10 +338,11 @@ class TestExecutionPage(BasePage):
 
     def construir_nombre_captura(self, entry):
         case = entry["case"]
-        ticket = self.obtener_ticket_test_plan(entry) or str(entry["plan"].get("tipo_nombre", "test_plan"))
+        plan_ticket = self.obtener_ticket_test_plan(entry) or str(entry["plan"].get("tipo_nombre", "test_plan"))
+        test_ticket = self.obtener_ticket_test(entry) or str(case.get("case_name") or entry["test"].get("field") or f"caso_{entry['case_index']}")
         bruto = "_".join([
-            str(ticket),
-            str(case.get("case_name") or entry["test"].get("field") or f"caso_{entry['case_index']}")
+            str(plan_ticket),
+            str(test_ticket)
         ])
         return "".join(char if char.isalnum() or char in {"_", "-"} else "_" for char in bruto).strip("_") or f"caso_{entry['case_index']}"
 
@@ -511,9 +512,13 @@ class TestExecutionPage(BasePage):
     def crear_ventana_captura(self, entry):
         window = ctk.CTkToplevel(self)
         window.title("Bruno Capture")
-        window.geometry("1500x900+120+120")
+        window.geometry("1760x1120+40+40")
         window.configure(fg_color="#121212")
         window.attributes("-topmost", True)
+        try:
+            window.state("zoomed")
+        except Exception:
+            pass
 
         surface = ctk.CTkFrame(window, fg_color="#1E1E1E", corner_radius=0)
         surface.pack(fill="both", expand=True, padx=0, pady=0)
@@ -573,8 +578,8 @@ class TestExecutionPage(BasePage):
         content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
         content.grid_columnconfigure(0, weight=1, uniform="capture")
         content.grid_columnconfigure(1, weight=1, uniform="capture")
-        request_box = self.crear_bruno_panel(content, 0, "Body", "JSON", WARNING_SOFT, 620, True)
-        response_box = self.crear_bruno_panel(content, 1, "Response", "JSON", ACCENT_SOFT, 620, True)
+        request_box = self.crear_bruno_panel(content, 0, "Body", "JSON", WARNING_SOFT, 820, True)
+        response_box = self.crear_bruno_panel(content, 1, "Response", "JSON", ACCENT_SOFT, 820, True)
         self.reemplazar_texto(request_box, self.request_text.get("1.0", "end").strip(), True)
         self.reemplazar_texto(response_box, self.response_text.get("1.0", "end").strip(), True)
         try:
@@ -582,10 +587,14 @@ class TestExecutionPage(BasePage):
             if line is not None:
                 response_box.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
                 response_box.tag_add("target_row", f"{line}.0", f"{line}.end")
-                self.centrar_linea_texto(response_box, line)
+                self.posicionar_linea_texto(response_box, line, top_margin_lines=2)
         except Exception:
             pass
 
+        window.update_idletasks()
+        window.update()
+        window.lift()
+        window.focus_force()
         window.update_idletasks()
         window.update()
         return window
@@ -626,6 +635,70 @@ class TestExecutionPage(BasePage):
         if not step_id:
             return ""
         return str(state.get("completed", {}).get(step_id, {}).get("jira_key", "")).strip()
+
+
+    def obtener_ticket_test(self, entry):
+        automation = dict(self.planning_data.get("automation") or {})
+        state_path = str(automation.get("state_path", "")).strip()
+        if not state_path:
+            return ""
+        path = Path(state_path)
+        if not path.exists():
+            return ""
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return ""
+
+        step_id = self.obtener_test_step_id(entry)
+        if not step_id:
+            return ""
+
+        return str(state.get("completed", {}).get(step_id, {}).get("jira_key", "")).strip()
+
+
+    def obtener_test_step_id(self, target_entry):
+        step_index = 0
+        base_plan = self.obtener_plan_base_comun()
+        if not base_plan:
+            return ""
+
+        for test_set in base_plan.get("test_sets", []):
+            if not test_set.get("enabled", True):
+                continue
+
+            for test in test_set.get("tests", []):
+                field_name = str(test.get("field", "")).strip()
+                if not field_name:
+                    continue
+
+                draft_cases = list(test.get("draft_cases", [])) or [
+                    {
+                        "case_name": f"{field_name} | Base",
+                        "response_field_path": str(test.get("field", "")).strip(),
+                        "request_value": ""
+                    }
+                ]
+
+                for case in draft_cases:
+                    step_index += 1
+                    if self.es_mismo_entry_test(target_entry, test_set, test, case):
+                        return f"test_{step_index}"
+
+        return ""
+
+
+    def es_mismo_entry_test(self, entry, test_set, test, case):
+        current_case = dict(entry.get("case", {}))
+        target_case = dict(case or {})
+        target_response_path = str(target_case.get("response_field_path") or self.construir_response_path(test_set.get("path", ""), test.get("field", ""))).strip()
+        return all([
+            str(entry.get("test_set", {}).get("path", "")).strip() == str(test_set.get("path", "")).strip(),
+            str(entry.get("test", {}).get("field", "")).strip() == str(test.get("field", "")).strip(),
+            str(current_case.get("case_name", "")).strip() == str(target_case.get("case_name", "")).strip(),
+            str(entry.get("response_field_path", "")).strip() == target_response_path,
+            str(current_case.get("request_value", "")).strip() == str(target_case.get("request_value", "")).strip()
+        ])
 
 
     def obtener_linea_target_actual(self):
@@ -743,16 +816,27 @@ class TestExecutionPage(BasePage):
 
     def centrar_linea_texto(self, textbox, line_number):
         try:
-            total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
-            visible_lines = max(1, int(textbox.winfo_height() / 20))
-            target = max(0, line_number - (visible_lines // 2))
-            textbox.yview_moveto(min(1.0, target / total_lines))
-            textbox.see(f"{line_number}.0")
+            visible_lines = self.obtener_lineas_visibles_textbox(textbox)
+            self.posicionar_linea_texto(textbox, line_number, top_margin_lines=max(2, visible_lines // 2))
         except Exception:
             try:
                 textbox.see(f"{line_number}.0")
             except Exception:
                 pass
+
+
+    def posicionar_linea_texto(self, textbox, line_number, top_margin_lines=2):
+        total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
+        target = max(0, line_number - max(0, top_margin_lines))
+        textbox.yview_moveto(min(1.0, target / total_lines))
+        textbox.see(f"{line_number}.0")
+
+
+    def obtener_lineas_visibles_textbox(self, textbox):
+        try:
+            return max(1, int(textbox.winfo_height() / 20))
+        except Exception:
+            return 10
 
 
     def obtener_entry_actual(self):
