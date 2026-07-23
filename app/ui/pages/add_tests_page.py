@@ -1473,12 +1473,18 @@ class AddTestsPage(BasePage):
             "coverage",
             {}
         )
+        resumen_local = self.obtener_resumen_cobertura_local(
+            nodo
+        )
         existe_actual = bool(
             coverage.get("exists")
         )
-        tiene_plan_local = self.nodo_tiene_plan_local(
-            nodo
-        )
+        direct_complete = bool(
+            resumen_local["direct_complete"]
+        ) or existe_actual
+        direct_any = bool(
+            resumen_local["direct_any"]
+        ) or existe_actual
         children = nodo.get(
             "children",
             []
@@ -1486,15 +1492,26 @@ class AddTestsPage(BasePage):
 
         if not children:
 
-            if existe_actual or tiene_plan_local:
+            if direct_complete:
 
                 return {
                     "status": "complete",
-                    "label": "Cubierto" if existe_actual else "Seleccionado",
+                    "label": "Cubierto" if existe_actual else "Completo",
                     "fg_color": "#EAF7F0",
                     "border_color": "#B9E2C8",
                     "badge_color": "#EAF7F0",
                     "badge_text_color": "#2E7D32"
+                }
+
+            if direct_any:
+
+                return {
+                    "status": "partial",
+                    "label": "Parcial",
+                    "fg_color": "#FFF7D6",
+                    "border_color": "#F2D77C",
+                    "badge_color": "#FFF7D6",
+                    "badge_text_color": "#8A6A00"
                 }
 
             return {
@@ -1523,18 +1540,18 @@ class AddTestsPage(BasePage):
             for child in child_states
         )
 
-        if (existe_actual or tiene_plan_local) and all_children_complete:
+        if direct_complete and all_children_complete:
 
             return {
                 "status": "complete",
-                "label": "Cubierto" if existe_actual else "Seleccionado",
+                "label": "Cubierto" if existe_actual else "Completo",
                 "fg_color": "#EAF7F0",
                 "border_color": "#B9E2C8",
                 "badge_color": "#EAF7F0",
                 "badge_text_color": "#2E7D32"
             }
 
-        if existe_actual or tiene_plan_local or any_child_with_plan:
+        if direct_any or any_child_with_plan:
 
             return {
                 "status": "partial",
@@ -1555,22 +1572,68 @@ class AddTestsPage(BasePage):
         }
 
 
-    def nodo_tiene_plan_local(self, nodo):
+    def obtener_resumen_cobertura_local(self, nodo):
 
         state = self.object_states.get(
             nodo["item"]["path"],
             {}
         )
 
+        tests = [
+            test
+            for test in nodo["item"].get(
+                "tests",
+                []
+            )
+            if test.get("field")
+        ]
+
         selected = state.get(
             "selected"
         )
+        is_selected = bool(
+            selected and selected.get()
+        )
 
-        if selected and selected.get():
+        if not tests:
 
-            return True
+            return {
+                "direct_any": is_selected,
+                "direct_complete": is_selected
+            }
 
-        return False
+        field_vars = state.get(
+            "field_vars",
+            {}
+        )
+
+        if not is_selected:
+
+            return {
+                "direct_any": False,
+                "direct_complete": False
+            }
+
+        covered_fields = 0
+
+        for test in tests:
+
+            field_name = test.get(
+                "field",
+                ""
+            )
+            variable = field_vars.get(
+                field_name
+            )
+
+            if variable and variable.get():
+
+                covered_fields += 1
+
+        return {
+            "direct_any": covered_fields > 0,
+            "direct_complete": covered_fields == len(tests)
+        }
 
 
     def construir_arbol_objetos(self, objetos):
