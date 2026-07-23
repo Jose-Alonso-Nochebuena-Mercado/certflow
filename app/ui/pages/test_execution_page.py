@@ -703,16 +703,27 @@ class TestExecutionPage(BasePage):
                 entry.get("response_field_path", "")
             )
 
-        self.reemplazar_texto(response_box, content_text, True)
+        display_text = content_text
+        display_target_line = target_line
+        display_start_line = 1
+
+        if target_line is not None:
+            display_text, display_target_line, display_start_line = self.construir_extracto_captura_respuesta(
+                content_text,
+                target_line,
+                context_lines=16
+            )
+
+        self.reemplazar_texto(response_box, display_text, True, line_start=display_start_line)
 
         try:
-            if target_line is not None:
+            if display_target_line is not None:
                 response_box.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
                 response_box.tag_config("target_focus", background="#CBEFD6", foreground="#124B2E")
-                response_box.tag_add("target_row", f"{target_line}.0", f"{target_line}.end")
+                response_box.tag_add("target_row", f"{display_target_line}.0", f"{display_target_line}.end")
                 if target_column is not None:
-                    response_box.tag_add("target_focus", f"{target_line}.{target_column}", f"{target_line}.end")
-                self.posicionar_linea_texto(response_box, target_line, target_column, top_margin_lines=2)
+                    response_box.tag_add("target_focus", f"{display_target_line}.{target_column}", f"{display_target_line}.end")
+                self.posicionar_linea_texto(response_box, display_target_line, target_column, top_margin_lines=2)
         except Exception:
             pass
 
@@ -1063,6 +1074,24 @@ class TestExecutionPage(BasePage):
         return str(value)
 
 
+    def construir_extracto_captura_respuesta(self, content_text, target_line, context_lines=16):
+        lines = str(content_text or "").splitlines()
+
+        if not lines or target_line is None:
+            return content_text, target_line, 1
+
+        start_line = max(1, target_line - max(1, context_lines // 2))
+        end_line = min(len(lines), start_line + context_lines - 1)
+
+        if end_line - start_line + 1 < context_lines:
+            start_line = max(1, end_line - context_lines + 1)
+
+        excerpt = "\n".join(lines[start_line - 1:end_line])
+        excerpt_target_line = target_line - start_line + 1
+
+        return excerpt, excerpt_target_line, start_line
+
+
     def actualizar_meta_response_panel(self, resultado, panel=None):
         target_panel = panel or getattr(self, "response_panel", None)
         if not target_panel:
@@ -1147,7 +1176,7 @@ class TestExecutionPage(BasePage):
         )
 
 
-    def actualizar_lineas_textbox(self, textbox, value):
+    def actualizar_lineas_textbox(self, textbox, value, line_start=1):
         meta = self.bruno_panel_registry.get(str(textbox))
         if not meta:
             return
@@ -1157,7 +1186,7 @@ class TestExecutionPage(BasePage):
             return
 
         line_count = max(1, len(str(value or "").splitlines()))
-        line_numbers = "\n".join(str(index) for index in range(1, line_count + 1))
+        line_numbers = "\n".join(str(index) for index in range(line_start, line_start + line_count))
         gutter.configure(state="normal")
         gutter.delete("1.0", "end")
         gutter.insert("1.0", line_numbers)
@@ -1171,10 +1200,10 @@ class TestExecutionPage(BasePage):
         return segments[-1].replace("[]", "")
 
 
-    def reemplazar_texto(self, textbox, value, editable):
+    def reemplazar_texto(self, textbox, value, editable, line_start=1):
         textbox.configure(state="normal")
         textbox.delete("1.0", "end")
         textbox.insert("1.0", value or "")
-        self.actualizar_lineas_textbox(textbox, value or "")
+        self.actualizar_lineas_textbox(textbox, value or "", line_start=line_start)
         if not editable:
             textbox.configure(state="disabled")
