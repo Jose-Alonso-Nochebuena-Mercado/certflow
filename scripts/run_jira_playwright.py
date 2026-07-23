@@ -356,7 +356,9 @@ def buscar_picker_desde_labels(page, labels):
                         return null;
                     }
 
-                    const candidates = Array.from(document.querySelectorAll('label, span, div, legend'));
+                    const candidates = Array.from(document.querySelectorAll(
+                        'label, legend, [aria-label], [data-field-id]'
+                    ));
 
                     const findFieldInContainer = (container) => {
                         if (!container) {
@@ -371,7 +373,11 @@ def buscar_picker_desde_labels(page, labels):
                     };
 
                     for (const candidate of candidates) {
-                        const text = normalize(candidate.textContent);
+                        const text = normalize(
+                            candidate.textContent
+                            || candidate.getAttribute('aria-label')
+                            || candidate.getAttribute('data-field-id')
+                        );
 
                         if (!text || (text !== target && !text.includes(target))) {
                             continue;
@@ -1103,6 +1109,8 @@ def completar_multi_issue_picker(
 
         return False
 
+    print(f"Buscando picker -> {log_name} ({len(valores)} valores)")
+
     locator = buscar_visible_por_selectores(
         page,
         expandir_selectores_issue_picker(
@@ -1700,6 +1708,15 @@ def rellenar_formulario(page, payload):
             issue.get("begin_date"),
             "Begin Date"
         )
+        try:
+
+            page.keyboard.press("Tab")
+
+        except Exception:
+
+            pass
+
+        page.wait_for_timeout(500)
         page.wait_for_timeout(1500)
         associated_test_set_keys = issue.get(
             "associated_test_set_keys",
@@ -1712,6 +1729,11 @@ def rellenar_formulario(page, payload):
         )
 
         if associated_test_set_keys:
+
+            print(
+                "Intentando asociar Test Sets al Test Plan: "
+                f"{', '.join(associated_test_set_keys)}"
+            )
 
             if not completar_multi_issue_picker(
                 page,
