@@ -475,15 +475,19 @@ class TestExecutionPage(BasePage):
 
 
     def render_response_json(self, response_json, response_path):
-        content, target_line = self.serializar_json_con_linea_objetivo(response_json, response_path)
+        content, target_line, target_column = self.serializar_json_con_linea_objetivo(response_json, response_path)
         self.reemplazar_texto(self.response_text, content, False)
         try:
             self.response_text.configure(state="normal")
             self.response_text.tag_delete("target_row")
+            self.response_text.tag_delete("target_focus")
             self.response_text.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
+            self.response_text.tag_config("target_focus", background="#CBEFD6", foreground="#124B2E")
             if target_line is not None:
                 self.response_text.tag_add("target_row", f"{target_line}.0", f"{target_line}.end")
-                self.centrar_linea_texto(self.response_text, target_line)
+                if target_column is not None:
+                    self.response_text.tag_add("target_focus", f"{target_line}.{target_column}", f"{target_line}.end")
+                self.centrar_linea_texto(self.response_text, target_line, target_column)
             self.response_text.configure(state="disabled")
         except Exception:
             self.response_text.configure(state="disabled")
@@ -669,9 +673,13 @@ class TestExecutionPage(BasePage):
         try:
             line = self.obtener_linea_target_actual()
             if line is not None:
+                column = self.obtener_columna_target_actual()
                 response_box.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
+                response_box.tag_config("target_focus", background="#CBEFD6", foreground="#124B2E")
                 response_box.tag_add("target_row", f"{line}.0", f"{line}.end")
-                self.posicionar_linea_texto(response_box, line, top_margin_lines=2)
+                if column is not None:
+                    response_box.tag_add("target_focus", f"{line}.{column}", f"{line}.end")
+                self.posicionar_linea_texto(response_box, line, column, top_margin_lines=2)
         except Exception:
             pass
 
@@ -792,6 +800,13 @@ class TestExecutionPage(BasePage):
         return int(str(ranges[0]).split(".")[0])
 
 
+    def obtener_columna_target_actual(self):
+        ranges = self.response_text.tag_ranges("target_focus")
+        if not ranges:
+            return None
+        return int(str(ranges[0]).split(".")[1])
+
+
     def obtener_escala_pantalla(self):
         try:
             return max(1.0, float(self.winfo_fpixels("1i")) / 72.0)
@@ -816,9 +831,10 @@ class TestExecutionPage(BasePage):
     def serializar_json_con_linea_objetivo(self, value, target_path):
         lines = []
         target_line = None
+        target_column = None
 
         def walk(node, indent=0, path=""):
-            nonlocal target_line
+            nonlocal target_line, target_column
             prefix = "    " * indent
             if isinstance(node, dict):
                 lines.append(f"{prefix}{{")
@@ -840,12 +856,13 @@ class TestExecutionPage(BasePage):
                         lines.append(f'{child_prefix}"{key}": {serialized}{suffix}')
                         if child_path == target_path:
                             target_line = len(lines)
+                            target_column = len(child_prefix)
                 lines.append(f"{prefix}}}")
                 return
             lines.append(f"{prefix}{json.dumps(node, ensure_ascii=False)}")
 
         def walk_list(node, indent=0, path=""):
-            nonlocal target_line
+            nonlocal target_line, target_column
             prefix = "    " * indent
             for index, child in enumerate(node):
                 suffix = "," if index < len(node) - 1 else ""
@@ -869,6 +886,7 @@ class TestExecutionPage(BasePage):
                             lines.append(f'{child_prefix}"{key}": {serialized}{child_suffix}')
                             if child_path == target_path:
                                 target_line = len(lines)
+                                target_column = len(child_prefix)
                     lines.append(f"{prefix}}}{suffix}")
                 elif isinstance(child, list):
                     lines.append(f"{prefix}[")
@@ -878,6 +896,7 @@ class TestExecutionPage(BasePage):
                     lines.append(f"{prefix}{json.dumps(child, ensure_ascii=False)}{suffix}")
                     if path == target_path:
                         target_line = len(lines)
+                        target_column = len(prefix)
 
         if isinstance(value, list):
             lines.append("[")
@@ -888,25 +907,29 @@ class TestExecutionPage(BasePage):
         else:
             lines.append(json.dumps(value, ensure_ascii=False))
 
-        return "\n".join(lines), target_line
+        return "\n".join(lines), target_line, target_column
 
 
-    def centrar_linea_texto(self, textbox, line_number):
+    def centrar_linea_texto(self, textbox, line_number, column_number=None):
         try:
             visible_lines = self.obtener_lineas_visibles_textbox(textbox)
-            self.posicionar_linea_texto(textbox, line_number, top_margin_lines=max(2, visible_lines // 2))
+            self.posicionar_linea_texto(textbox, line_number, column_number, top_margin_lines=max(2, visible_lines // 2))
         except Exception:
             try:
-                textbox.see(f"{line_number}.0")
+                textbox.see(f"{line_number}.{column_number or 0}")
             except Exception:
                 pass
 
 
-    def posicionar_linea_texto(self, textbox, line_number, top_margin_lines=2):
+    def posicionar_linea_texto(self, textbox, line_number, column_number=None, top_margin_lines=2):
         total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
         target = max(0, line_number - max(0, top_margin_lines))
         textbox.yview_moveto(min(1.0, target / total_lines))
-        textbox.see(f"{line_number}.0")
+        try:
+            textbox.xview_moveto(0)
+        except Exception:
+            pass
+        textbox.see(f"{line_number}.{column_number or 0}")
 
 
     def obtener_lineas_visibles_textbox(self, textbox):
