@@ -598,13 +598,13 @@ class AddTestsPage(BasePage):
 
         guardar = ctk.CTkButton(
             footer,
-            text="Guardar en planning",
-            width=180,
+            text="Continuar con diseño de tests",
+            width=240,
             height=40,
             corner_radius=20,
             fg_color=PRIMARY,
             hover_color=PRIMARY_LIGHT,
-            command=self.guardar_en_planning
+            command=self.continuar_a_diseno_tests
         )
 
         guardar.pack(
@@ -614,7 +614,7 @@ class AddTestsPage(BasePage):
 
         ayuda = ctk.CTkLabel(
             footer,
-            text="El planning se va armando localmente; la sincronización real con Jira/Xray será el siguiente paso del flujo.",
+            text="Primero se guarda la selección en planning y enseguida se abre la pantalla para diseñar bodies, escenarios y expectativas por campo.",
             font=get_font(SMALL),
             text_color=TEXT_MUTED,
             justify="left",
@@ -2042,13 +2042,13 @@ class AddTestsPage(BasePage):
                 )
 
 
-    def guardar_en_planning(self):
+    def continuar_a_diseno_tests(self):
 
         if not self.request_info or not self.discovery_result:
 
             MessageBox(
                 self,
-                "Ejecuta primero una request del catálogo antes de guardar en el planning.",
+                "Ejecuta primero una request del catálogo antes de continuar al diseño de tests.",
                 "warning"
             )
             return
@@ -2083,12 +2083,12 @@ class AddTestsPage(BasePage):
 
             MessageBox(
                 self,
-                "Selecciona al menos un nodo del mapa antes de guardar.",
+                "Selecciona al menos un nodo del mapa antes de continuar.",
                 "warning"
             )
             return
 
-        actualizar_planning_con_seleccion(
+        planning_data = actualizar_planning_con_seleccion(
             self.crq,
             self.request_info,
             seleccionados,
@@ -2096,18 +2096,14 @@ class AddTestsPage(BasePage):
             self.discovery_actual
         )
 
-        MessageBox(
-            self,
-            (
-                f"Se actualizaron {len(seleccionados)} test sets para {self.crq.get('crq', 'el CRQ')}\n\n"
-                "Integración se usa como base, Aceptación se replica desde Integración cuando aplica y Regresión se mantiene como línea separada."
-            ),
-            "success"
-        )
-
         self.navigate(
-            "crq_detail",
-            crq=self.crq
+            "test_design",
+            crq=self.crq,
+            planning_data=planning_data,
+            request_info=self.request_info,
+            response_data=(self.last_execution_result or {}).get(
+                "response"
+            )
         )
 
 

@@ -27,6 +27,7 @@ class Router:
         from app.ui.pages.discovery_page import DiscoveryPage
         from app.ui.pages.crq_detail_page import CRQDetailPage
         from app.ui.pages.add_tests_page import AddTestsPage
+        from app.ui.pages.test_design_page import TestDesignPage
         from app.ui.pages.settings_page import SettingsPage
 
 
@@ -54,6 +55,9 @@ class Router:
 
             "add_tests":
                 AddTestsPage,
+
+            "test_design":
+                TestDesignPage,
 
             "settings":
                 SettingsPage
