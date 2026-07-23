@@ -9,6 +9,7 @@ from app.services.test_catalog_service import (
     agregar_servicio_catalogo,
     agregar_transaccion_catalogo,
     agregar_version_catalogo,
+    actualizar_repository_folder_catalogo,
     construir_bruno_request,
     construir_descubrimiento_catalogo,
     obtener_servicios,
@@ -71,6 +72,7 @@ class AddTestsPage(BasePage):
         self.auto_execute_enabled = False
         self.last_request_key = None
         self.last_execution_result = None
+        self.repository_path_input = None
 
         super().__init__(
             parent,
@@ -270,6 +272,59 @@ class AddTestsPage(BasePage):
         self.request_preview.pack(
             anchor="w",
             pady=(16, 0)
+        )
+
+        repository_frame = ctk.CTkFrame(
+            contenido,
+            fg_color="transparent"
+        )
+
+        repository_frame.pack(
+            fill="x",
+            pady=(14, 0)
+        )
+
+        repository_title = ctk.CTkLabel(
+            repository_frame,
+            text="Repository path para Jira/Xray",
+            font=get_font(BODY),
+            text_color=TEXT_PRIMARY
+        )
+
+        repository_title.pack(
+            anchor="w",
+            pady=(0, 6)
+        )
+
+        repository_hint = ctk.CTkLabel(
+            repository_frame,
+            text=(
+                "Este path aplica a todos los Tests y Test Sets de la request seleccionada. "
+                "Si ya se capturó antes para esta transacción, aparecerá aquí por defecto y seguirá siendo editable."
+            ),
+            font=get_font(SMALL),
+            text_color=TEXT_MUTED,
+            justify="left",
+            wraplength=940
+        )
+
+        repository_hint.pack(
+            anchor="w",
+            pady=(0, 8)
+        )
+
+        self.repository_path_input = ctk.CTkEntry(
+            repository_frame,
+            height=40,
+            corner_radius=12,
+            fg_color=SURFACE_ALT,
+            border_color=BORDER,
+            text_color=TEXT_PRIMARY,
+            placeholder_text="Ejemplo: Movimientos TDC"
+        )
+
+        self.repository_path_input.pack(
+            fill="x"
         )
 
         acciones_catalogo = ctk.CTkFrame(
@@ -859,6 +914,10 @@ class AddTestsPage(BasePage):
                 f"Librerías: {', '.join(request_info.get('transaction_libraries', [])) or 'Sin librerías'}\n"
                 "Modo actual: ejecución real desde el archivo `.bru`. Si la request requiere red interna, activa VPN antes de probar."
             )
+        )
+
+        self.sincronizar_repository_path_input(
+            request_info
         )
 
 
@@ -2088,6 +2147,42 @@ class AddTestsPage(BasePage):
             )
             return
 
+        repository_path = self.obtener_repository_path_actual()
+
+        if not repository_path:
+
+            MessageBox(
+                self,
+                "Captura el repository path antes de continuar. Ese valor se reutilizará para todos los Tests y Test Sets de esta request.",
+                "warning"
+            )
+            return
+
+        self.request_info["repository_folder"] = repository_path
+
+        service_id = self.request_info.get("service_id")
+        transaction_id = self.request_info.get("transaction_id")
+
+        if service_id and transaction_id:
+
+            try:
+
+                actualizar_repository_folder_catalogo(
+                    service_id,
+                    transaction_id,
+                    repository_path,
+                    version_id=self.request_info.get("version_id")
+                )
+
+            except CatalogoServiciosError as error:
+
+                MessageBox(
+                    self,
+                    str(error),
+                    "warning"
+                )
+                return
+
         planning_data = actualizar_planning_con_seleccion(
             self.crq,
             self.request_info,
@@ -2105,6 +2200,32 @@ class AddTestsPage(BasePage):
                 "response"
             )
         )
+
+
+    def sincronizar_repository_path_input(self, request_info):
+
+        if not self.repository_path_input:
+
+            return
+
+        valor = str(
+            (request_info or {}).get(
+                "repository_folder",
+                ""
+            ) or ""
+        ).strip()
+
+        self.repository_path_input.delete(0, "end")
+        self.repository_path_input.insert(0, valor)
+
+
+    def obtener_repository_path_actual(self):
+
+        if not self.repository_path_input:
+
+            return ""
+
+        return self.repository_path_input.get().strip()
 
 
     def get_selected_objects(self):

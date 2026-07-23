@@ -153,8 +153,15 @@ class NewCRQPage(BasePage):
         self.descripcion = self.crear_campo_descripcion(
             derecha,
             "Descripción",
-            height=220,
+            height=140,
             helper_text="Puede dejar notas amplias del CRQ; este campo tiene scroll interno."
+        )
+
+        self.objetivo_cambio = self.crear_campo_descripcion(
+            derecha,
+            "Objetivo del cambio",
+            height=120,
+            helper_text="Describe el objetivo funcional o técnico del CRQ; este texto se reutiliza después para enriquecer la descripción del Test Plan."
         )
 
         self.crear_footer(
@@ -689,6 +696,7 @@ class NewCRQPage(BasePage):
             crq=datos["crq"],
             sdatool=datos["sdatool"],
             descripcion=datos["descripcion"],
+            objetivo_cambio=datos["objetivo_cambio"],
             portafolio=datos["portafolio"],
             fecha_instalacion=datos["fecha_instalacion"],
             certificaciones=datos["certificaciones"]
@@ -728,6 +736,10 @@ class NewCRQPage(BasePage):
                 "1.0",
                 "end"
             ).strip(),
+            "objetivo_cambio": self.objetivo_cambio.get(
+                "1.0",
+                "end"
+            ).strip(),
             "portafolio": self.portafolio.get().strip(),
             "fecha_instalacion": self.fecha.get().strip(),
             "certificaciones": self.obtener_certificaciones_seleccionadas()
@@ -762,6 +774,10 @@ class NewCRQPage(BasePage):
         if not datos["portafolio"] or datos["portafolio"] == "Sin portafolios configurados":
 
             return "Debe seleccionar un portafolio válido"
+
+        if not datos["objetivo_cambio"]:
+
+            return "Debe capturar el objetivo del cambio"
 
         if not datos["fecha_instalacion"]:
 

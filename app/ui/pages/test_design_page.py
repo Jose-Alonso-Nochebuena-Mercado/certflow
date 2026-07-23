@@ -371,36 +371,67 @@ class TestDesignPage(BasePage):
             self.case_name_var
         )
 
+        self.inferred_path_card = ctk.CTkFrame(
+            form_grid,
+            fg_color=PRIMARY_SOFT,
+            corner_radius=14,
+            border_width=1,
+            border_color=BORDER
+        )
+
+        self.inferred_path_card.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="ew",
+            padx=8,
+            pady=8
+        )
+
+        self.inferred_path_label = ctk.CTkLabel(
+            self.inferred_path_card,
+            text="Ruta inferida del campo: -",
+            font=get_font(BODY),
+            text_color=PRIMARY,
+            justify="left",
+            wraplength=760
+        )
+
+        self.inferred_path_label.pack(
+            anchor="w",
+            padx=14,
+            pady=(12, 4)
+        )
+
+        self.inferred_path_hint = ctk.CTkLabel(
+            self.inferred_path_card,
+            text="El path del body y de la response se infiere automáticamente desde el campo seleccionado. Aquí solo capturas el valor a enviar y el valor esperado.",
+            font=get_font(SMALL),
+            text_color=TEXT_SECONDARY,
+            justify="left",
+            wraplength=760
+        )
+
+        self.inferred_path_hint.pack(
+            anchor="w",
+            padx=14,
+            pady=(0, 12)
+        )
+
         self.request_path_entry = self.crear_field_entry(
             form_grid,
-            1,
+            2,
             0,
-            "Path a modificar en body",
+            "Valor del campo en request",
             self.request_path_var
         )
 
         self.request_value_entry = self.crear_field_entry(
             form_grid,
+            2,
             1,
-            1,
-            "Valor para request",
+            "Valor esperado en response",
             self.request_value_var
-        )
-
-        self.response_path_entry = self.crear_field_entry(
-            form_grid,
-            2,
-            0,
-            "Path esperado en response",
-            self.response_path_var
-        )
-
-        self.expected_value_entry = self.crear_field_entry(
-            form_grid,
-            2,
-            1,
-            "Valor esperado",
-            self.expected_value_var
         )
 
         self.live_card = ctk.CTkFrame(
@@ -1085,9 +1116,7 @@ class TestDesignPage(BasePage):
         for entry in [
             self.case_name_entry,
             self.request_path_entry,
-            self.request_value_entry,
-            self.response_path_entry,
-            self.expected_value_entry
+            self.request_value_entry
         ]:
 
             entry.bind(
@@ -1358,6 +1387,10 @@ class TestDesignPage(BasePage):
 
         cases = self.asegurar_casos_borrador()
         current_case = cases[self.selected_case_index]
+        inferred_path = current_case.get(
+            "response_field_path",
+            entry["response_field_path"]
+        )
 
         self.summary_title.configure(
             text=f"{entry['test_set'].get('nombre', 'Test Set')} · {entry['test']['field']}"
@@ -1365,9 +1398,13 @@ class TestDesignPage(BasePage):
         self.summary_detail.configure(
             text=(
                 f"Plan: {entry['plan'].get('tipo_nombre', 'Plan')} · "
-                f"Path response: {entry['response_field_path']} · "
+                f"Path inferido: {inferred_path} · "
                 f"Jira test actual: {entry['test'].get('jira_key', 'Sin ligar')}"
             )
+        )
+
+        self.inferred_path_label.configure(
+            text=f"Ruta inferida del campo: {inferred_path}"
         )
 
         self.render_case_buttons(cases)
@@ -1387,22 +1424,23 @@ class TestDesignPage(BasePage):
         )
         self.request_path_var.set(
             current_case.get(
-                "request_field_path",
+                "request_value",
                 ""
             )
         )
         self.request_value_var.set(
             current_case.get(
+                "expected_value",
+                ""
+            )
+        )
+        self.request_path_var.set(
+            current_case.get(
                 "request_value",
                 ""
             )
         )
-        self.response_path_var.set(
-            current_case.get(
-                "response_field_path",
-                entry["response_field_path"]
-            )
-        )
+        self.response_path_var.set(inferred_path)
         self.expected_value_var.set(
             current_case.get(
                 "expected_value",
@@ -1493,10 +1531,13 @@ class TestDesignPage(BasePage):
 
         self.case_type_var.set(CASE_TYPES[0])
         self.case_name_var.set("")
-        self.request_path_var.set("")
         self.request_value_var.set("")
-        self.response_path_var.set("")
         self.expected_value_var.set("")
+        self.request_path_var.set("")
+        self.response_path_var.set("")
+        self.inferred_path_label.configure(
+            text="Ruta inferida del campo: -"
+        )
         self.reemplazar_texto(
             self.body_template_text,
             self.base_body_template,
@@ -1546,8 +1587,8 @@ class TestDesignPage(BasePage):
 
         case_name = self.case_name_var.get().strip()
         response_path = self.response_path_var.get().strip()
-        request_value = self.request_value_var.get().strip()
-        expected_value = self.expected_value_var.get().strip()
+        request_value = self.request_path_var.get().strip()
+        expected_value = self.request_value_var.get().strip()
         body_template = self.body_template_text.get(
             "1.0",
             "end"
@@ -1569,7 +1610,7 @@ class TestDesignPage(BasePage):
         cases[self.selected_case_index] = {
             "case_type": self.case_type_var.get().strip() or CASE_TYPES[0],
             "case_name": case_name or f"{entry['test']['field']} | Caso {self.selected_case_index + 1}",
-            "request_field_path": self.request_path_var.get().strip(),
+            "request_field_path": response_path,
             "request_value": request_value,
             "response_field_path": response_path,
             "expected_value": expected_value,
@@ -1599,9 +1640,9 @@ class TestDesignPage(BasePage):
             "end"
         ).strip() or self.base_body_template
         request_path = self.request_path_var.get().strip()
-        request_value = self.request_value_var.get().strip()
+        request_value = self.request_path_var.get().strip()
         response_path = self.response_path_var.get().strip()
-        expected_value = self.expected_value_var.get().strip()
+        expected_value = self.request_value_var.get().strip()
 
         preview_text = self.construir_body_preview(
             body_template,
@@ -1859,14 +1900,37 @@ class TestDesignPage(BasePage):
         plan = entry["plan"]
         test_set = entry["test_set"]
         test = entry["test"]
+        channel = self.obtener_channel_display()
+        service_name = self.obtener_service_display()
+        version_label = self.obtener_version_display()
+        object_path = self.formatear_path_para_summary(
+            test_set.get("path", "General")
+        )
+        case_type = self.obtener_tipo_prueba_display(test)
+        field_name = test.get("field", "Campo")
+        objetivo = str(
+            self.crq.get(
+                "objetivo_cambio",
+                ""
+            ) or self.crq.get(
+                "descripcion",
+                ""
+            )
+        ).strip()
 
         today = self.crq.get("fecha_instalacion", "") or datetime.now().strftime("%Y-%m-%d")
 
         plan.setdefault(
             "issue_payload",
             {
-                "summary": plan.get("nombre", ""),
-                "description": plan.get("estrategia", ""),
+                "summary": f"[CRQ-{self.crq.get('crq', '-')}] {service_name} | {version_label} | {plan.get('tipo_nombre', 'Plan')}",
+                "description": self.construir_descripcion_test_plan(
+                    plan.get("tipo_nombre", "Plan"),
+                    service_name,
+                    version_label,
+                    objetivo,
+                    plan.get("estrategia", "")
+                ),
                 "typology_name": TYPOLOGY_NAME_BY_PLAN_ID.get(
                     plan.get("tipo_id", ""),
                     plan.get("tipo_nombre", "")
@@ -1879,10 +1943,11 @@ class TestDesignPage(BasePage):
         test_set.setdefault(
             "issue_payload",
             {
-                "summary": test_set.get("nombre", ""),
-                "description": (
-                    f"Test Set para {test_set.get('path', 'General')} "
-                    f"del CRQ {self.crq.get('crq', '-')}."
+                "summary": f"[{channel}-Global] {service_name} | {version_label} | {object_path}",
+                "description": self.construir_descripcion_test_set(
+                    object_path,
+                    service_name,
+                    version_label
                 ),
                 "repository_path": self.repository_path_default
             }
@@ -1891,10 +1956,14 @@ class TestDesignPage(BasePage):
         test.setdefault(
             "issue_payload",
             {
-                "summary": test.get("nombre", ""),
-                "description": (
-                    f"Validación del campo {test.get('field', '-')} "
-                    f"en {test_set.get('path', 'General')} para el CRQ {self.crq.get('crq', '-')}."
+                "summary": f"[{channel}-Global] {service_name} | {version_label} | {object_path} | {field_name} | {case_type} | Global/Esperado",
+                "description": self.construir_descripcion_test(
+                    field_name,
+                    object_path,
+                    case_type,
+                    service_name,
+                    version_label,
+                    test
                 ),
                 "actions": test.get("actions", ""),
                 "repository_path": self.repository_path_default
@@ -1933,6 +2002,8 @@ class TestDesignPage(BasePage):
         payloads["plan"]["begin_date"] = self.obtener_valor_entry(self.plan_begin_entry)
         payloads["plan"]["end_date"] = self.obtener_valor_entry(self.plan_end_entry)
 
+        self.repository_path_default = payloads["test"]["repository_path"]
+
 
     def obtener_valor_entry(self, wrapper):
 
@@ -1960,6 +2031,118 @@ class TestDesignPage(BasePage):
             "1.0",
             "end"
         ).strip()
+
+
+    def obtener_channel_display(self):
+
+        channel = str(
+            self.request_info.get(
+                "transaction_channel",
+                ""
+            )
+        ).strip()
+
+        return channel.upper() if channel else "GENERAL"
+
+
+    def obtener_service_display(self):
+
+        return str(
+            self.request_info.get(
+                "service_name",
+                "Servicio"
+            )
+        ).strip() or "Servicio"
+
+
+    def obtener_version_display(self):
+
+        return str(
+            self.request_info.get(
+                "version_label",
+                "Sin versión"
+            )
+        ).strip() or "Sin versión"
+
+
+    def formatear_path_para_summary(self, path):
+
+        segmentos = []
+
+        for segmento in str(path or "General").split("."):
+
+            limpio = segmento.replace("[]", "")
+            limpio = limpio.replace("_", " ").strip()
+
+            if not limpio:
+
+                continue
+
+            segmentos.append(
+                limpio[:1].upper() + limpio[1:]
+            )
+
+        return " > ".join(segmentos) if segmentos else "General"
+
+
+    def obtener_tipo_prueba_display(self, test):
+
+        draft_cases = test.get("draft_cases", [])
+
+        if draft_cases:
+
+            return str(
+                draft_cases[0].get(
+                    "case_type",
+                    CASE_TYPES[0]
+                )
+            ).strip() or CASE_TYPES[0]
+
+        return CASE_TYPES[0]
+
+
+    def construir_descripcion_test(self, field_name, object_path, case_type, service_name, version_label, test):
+
+        draft_cases = test.get("draft_cases", [])
+        case_detail = ""
+
+        if draft_cases:
+
+            primer_caso = draft_cases[0]
+            esperado = str(
+                primer_caso.get(
+                    "expected_value",
+                    ""
+                )
+            ).strip()
+
+            if esperado:
+
+                case_detail = f" Se espera observar el valor `{esperado}` en la respuesta para validar el resultado del escenario."
+
+        return (
+            f"Validación del campo {field_name} en {object_path} para el servicio {service_name} {version_label}. "
+            f"El caso base corresponde a un escenario {case_type.lower()} y servirá como referencia para construir el test funcional y su evidencia.{case_detail}"
+        )
+
+
+    def construir_descripcion_test_set(self, object_path, service_name, version_label):
+
+        return (
+            f"Agrupa los tests funcionales asociados al objeto {object_path} del servicio {service_name} {version_label}. "
+            "Este set sirve como contenedor de cobertura para revisar de forma conjunta los campos seleccionados y sus escenarios."
+        )
+
+
+    def construir_descripcion_test_plan(self, plan_name, service_name, version_label, objetivo, estrategia):
+
+        objetivo_texto = objetivo or "Sin objetivo detallado"
+
+        return (
+            f"Test Plan de tipo {plan_name} para el servicio {service_name} {version_label}. "
+            f"Objetivo del cambio: {objetivo_texto}. "
+            f"Estrategia inicial: {estrategia}"
+        )
 
 
     def obtener_body_bruno_base(self):
