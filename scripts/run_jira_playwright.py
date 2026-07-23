@@ -103,7 +103,6 @@ def cargar_payload(path_argument):
 
 
 def guardar_payload(path_argument, payload):
-
     payload_path = Path(
         path_argument
     ).resolve()
@@ -323,9 +322,135 @@ def buscar_por_labels(page, labels):
     return None
 
 
+def buscar_picker_desde_labels(page, labels):
+
+    for label in labels or []:
+
+        try:
+
+            selector_temporal = page.evaluate(
+                """
+                (labelText) => {
+                    const normalize = (value) => String(value || '')
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .trim()
+                        .toLowerCase();
+
+                    const isVisible = (element) => {
+                        if (!element) {
+                            return false;
+                        }
+
+                        const style = window.getComputedStyle(element);
+                        const rect = element.getBoundingClientRect();
+                        return style.visibility !== 'hidden'
+                            && style.display !== 'none'
+                            && rect.width > 0
+                            && rect.height > 0;
+                    };
+
+                    const target = normalize(labelText);
+
+                    if (!target) {
+                        return null;
+                    }
+
+                    const candidates = Array.from(document.querySelectorAll('label, span, div, legend'));
+
+                    const findFieldInContainer = (container) => {
+                        if (!container) {
+                            return null;
+                        }
+
+                        const field = container.querySelector(
+                            '[role="combobox"], textarea, input:not([type="hidden"])'
+                        );
+
+                        return isVisible(field) ? field : null;
+                    };
+
+                    for (const candidate of candidates) {
+                        const text = normalize(candidate.textContent);
+
+                        if (!text || (text !== target && !text.includes(target))) {
+                            continue;
+                        }
+
+                        let field = null;
+
+                        if (candidate.tagName === 'LABEL') {
+                            const htmlFor = candidate.getAttribute('for');
+
+                            if (htmlFor) {
+                                field = document.getElementById(htmlFor);
+
+                                if (isVisible(field)) {
+                                    field.setAttribute('data-certflow-picker-probe', 'true');
+                                    return '[data-certflow-picker-probe="true"]';
+                                }
+                            }
+                        }
+
+                        let container = candidate.parentElement;
+                        let depth = 0;
+
+                        while (!field && container && depth < 5) {
+                            field = findFieldInContainer(container);
+                            container = container.parentElement;
+                            depth += 1;
+                        }
+
+                        if (field) {
+                            field.setAttribute('data-certflow-picker-probe', 'true');
+                            return '[data-certflow-picker-probe="true"]';
+                        }
+                    }
+
+                    return null;
+                }
+                """,
+                label
+            )
+
+            if not selector_temporal:
+
+                continue
+
+            locator = page.locator(
+                str(selector_temporal)
+            )
+
+            if locator.count() > 0 and locator_es_visible(
+                locator.first
+            ):
+
+                return locator.first
+
+        except Exception:
+
+            continue
+
+        finally:
+
+            try:
+
+                page.locator(
+                    "[data-certflow-picker-probe='true']"
+                ).evaluate_all(
+                    "elements => elements.forEach(element => element.removeAttribute('data-certflow-picker-probe'))"
+                )
+
+            except Exception:
+
+                pass
+
+    return None
+
+
 def buscar_por_selectores(page, selectors):
 
-    for selector in selectors:
+    for selector in selectors or []:
 
         try:
 
@@ -345,7 +470,6 @@ def buscar_por_selectores(page, selectors):
 
 
 def buscar_visible_por_selectores(page, selectors):
-
     for selector in selectors or []:
 
         try:
@@ -413,7 +537,8 @@ def expandir_selectores_issue_picker(selectors):
                     f"[data-field-id='{base}'] input",
                     f"[data-field-id='{base}'] textarea",
                     f"[data-field-id='{base}'] [role='combobox']",
-                    f"[aria-controls*='{base}']"
+                    f"[aria-controls*='{base}']",
+                    f"[aria-label*='{base}']"
                 ]
             )
 
@@ -984,6 +1109,13 @@ def completar_multi_issue_picker(
             selectors
         )
     )
+
+    if locator is None and labels:
+
+        locator = buscar_picker_desde_labels(
+            page,
+            labels
+        )
 
     if locator is None and labels:
 
