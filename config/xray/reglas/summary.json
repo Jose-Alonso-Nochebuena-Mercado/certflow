@@ -1,0 +1,15 @@
+{
+    "test_plan":
+
+    "{sdatool} | {crq} | {tipo}",
+
+
+    "test_set":
+
+    "{aplicacion} | {objeto}",
+
+
+    "test":
+
+    "{objeto}.{campo} | {escenario}"
+}

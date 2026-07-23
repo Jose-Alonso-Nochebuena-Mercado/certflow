@@ -1,0 +1,11 @@
+{
+    "enabled": true,
+    "preferred_mode": "real_only",
+    "collection_root": "C:\\Users\\XMF5325\\Documents\\Bruno Colections",
+    "command_template": "",
+    "response_mode": "",
+    "timeout_seconds": 90,
+    "verify_ssl": false,
+    "ca_bundle_path": "",
+    "allow_mock_fallback": false
+}

@@ -1,0 +1,19 @@
+{
+    "card_extension": {
+        "commerce": {
+            "id": "AMAZON",
+            "name": "Amazon",
+            "country": "MX"
+        },
+        "channel": {
+            "id": "WEB",
+            "description": "Sitio web"
+        }
+    },
+    "movement": {
+        "id": "12345",
+        "amount": 799.55,
+        "currency": "MXN"
+    }
+}
+

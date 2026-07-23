@@ -1,0 +1,25 @@
+{
+    "card_extension": {
+        "commerce": {
+            "id": "AMAZON",
+            "name": "Amazon Prime",
+            "address": {
+                "street": "Av. Principal 123",
+                "city": "CDMX",
+                "country": "MX"
+            }
+        },
+        "financing": {
+            "installments": 18,
+            "campaign": {
+                "code": "PRIME18",
+                "description": "Campaña 18 MSI"
+            }
+        }
+    },
+    "audit": {
+        "request_id": "REQ-999",
+        "trace_id": "TRACE-123"
+    }
+}
+

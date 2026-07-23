@@ -1,0 +1,16 @@
+{
+    "transfer": {
+        "id": "TRX-2001",
+        "status": "EXECUTED",
+        "beneficiary": {
+            "name": "Proveedor Demo",
+            "account": "1234567890",
+            "bank": "BBVA"
+        },
+        "amount": {
+            "value": 1500.0,
+            "currency": "MXN"
+        }
+    }
+}
+

@@ -1,0 +1,22 @@
+{
+    "movements": [
+        {
+            "movement_id": "1001",
+            "status": "SETTLED",
+            "amount": 250.0,
+            "currency": "MXN"
+        },
+        {
+            "movement_id": "1002",
+            "status": "PENDING",
+            "amount": 99.9,
+            "currency": "USD"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "total_pages": 5,
+        "total_items": 98
+    }
+}
+

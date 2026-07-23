@@ -1,0 +1,111 @@
+{
+    "services": [
+        {
+            "id": "movimientos",
+            "name": "Movimientos",
+            "transactions": [
+                {
+                    "id": "detalle",
+                    "name": "Detalle",
+                    "versions": [
+                        {
+                            "id": "v1",
+                            "label": "V1",
+                            "bruno_request": {
+                                "collection": "movimientos",
+                                "folder": "detalle/v1",
+                                "request": "get_detalle_v1",
+                                "file": "collections/movimientos/detalle/v1/get_detalle_v1.bru",
+                                "logical_path": "movimientos/detalle/v1/get_detalle_v1"
+                            },
+                            "mock_response": "config/mocks/movimientos_detalle_v1.json"
+                        },
+                        {
+                            "id": "v2",
+                            "label": "V2",
+                            "bruno_request": {
+                                "collection": "movimientos",
+                                "folder": "detalle/v2",
+                                "request": "get_detalle_v2",
+                                "file": "collections/movimientos/detalle/v2/get_detalle_v2.bru",
+                                "logical_path": "movimientos/detalle/v2/get_detalle_v2"
+                            },
+                            "mock_response": "config/mocks/movimientos_detalle_v2.json"
+                        },
+                        {
+                            "id": "v3",
+                            "label": "V3",
+                            "bruno_request": {
+                                "collection": "movimientos",
+                                "folder": "detalle/v3",
+                                "request": "get_detalle_v3",
+                                "file": "collections/movimientos/detalle/v3/get_detalle_v3.bru",
+                                "logical_path": "movimientos/detalle/v3/get_detalle_v3"
+                            },
+                            "mock_response": "config/mocks/movimientos_detalle_v3.json"
+                        }
+                    ]
+                },
+                {
+                    "id": "listado",
+                    "name": "Listado",
+                    "bruno_request": {
+                        "collection": "movimientos",
+                        "folder": "listado",
+                        "request": "get_listado_movimientos",
+                        "file": "collections/movimientos/listado/get_listado_movimientos.bru",
+                        "logical_path": "movimientos/listado/get_listado_movimientos"
+                    },
+                    "mock_response": "config/mocks/movimientos_listado.json"
+                }
+            ]
+        },
+        {
+            "id": "pagos",
+            "name": "Pagos",
+            "transactions": [
+                {
+                    "id": "transferencia_detalle",
+                    "name": "Transferencia detalle",
+                    "bruno_request": {
+                        "collection": "pagos",
+                        "folder": "transferencias/detalle",
+                        "request": "get_transferencia_detalle",
+                        "file": "collections/pagos/transferencias/detalle/get_transferencia_detalle.bru",
+                        "logical_path": "pagos/transferencias/detalle/get_transferencia_detalle"
+                    },
+                    "mock_response": "config/mocks/pagos_transferencia_detalle.json"
+                }
+            ]
+        },
+        {
+            "id": "detalle_de_movimiento",
+            "name": "Detalle De Movimiento",
+            "transactions": [
+                {
+                    "id": "j6ect001_int",
+                    "name": "J6Ect001  -Int",
+                    "versions": [
+                        {
+                            "id": "v2",
+                            "label": "V2",
+                            "bruno_request": {
+                                "collection": "Detalle de movimiento",
+                                "request": "J6ECT001 - INT",
+                                "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                                "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                            }
+                        }
+                    ],
+                    "libraries": [
+                        "KMOLR032",
+                        "KMOLR031",
+                        "KMOLR030",
+                        "J6ECR004",
+                        "CARD_TRANSACTION"
+                    ]
+                }
+            ]
+        }
+    ]
+}

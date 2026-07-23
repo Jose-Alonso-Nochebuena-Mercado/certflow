@@ -1,0 +1,19 @@
+{
+    "mode": "assisted",
+    "source": "home_dummy_buttons",
+    "browser_channel": "chrome",
+    "start_url": "https://jira.globaldevtools.bbva.com/secure/StructureBoard.jspa?s=4256#",
+    "project": {
+        "key": "MCREDITSM4",
+        "name": "Mexico-CREDITS-MP CREDITS SERVICES NEXT-GEN"
+    },
+    "issue": {
+        "type": "Test",
+        "summary": "[DUMMY] Test de prueba | 2026-07-22 17:28:36",
+        "description": "Registro de prueba generado desde el Home de CertFlow para validar la automatización asistida con Playwright.\n\nIssue Type: Test\nOrigen: Botones temporales del Home\nNota: este payload usa información dummy antes de conectar el flujo real de selección de objetos, campos y escenarios.",
+        "actions": "1. Abrir el formulario Create de Jira.\n2. Seleccionar proyecto e issue type.\n3. Rellenar Summary, Description y Test Details cuando aplique.\n4. Dejar el formulario listo para revisión/manual submit del usuario.",
+        "labels": "certflow-dummy",
+        "repository_path": "Operativas Críticas/Movimientos TDC",
+        "auto_submit": false
+    }
+}

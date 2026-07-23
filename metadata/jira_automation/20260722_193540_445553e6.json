@@ -1,0 +1,87 @@
+{
+    "mode": "dummy_e2e",
+    "source": "home_dummy_e2e",
+    "browser_channel": "chrome",
+    "start_url": "https://jira.globaldevtools.bbva.com/secure/StructureBoard.jspa?s=4256#",
+    "project": {
+        "key": "MCREDITSM4",
+        "name": "Mexico-CREDITS-MP CREDITS SERVICES NEXT-GEN"
+    },
+    "state_path": "C:\\Users\\XMF5325\\Documents\\Proyectos\\Automatizaciones_II\\CertFlow\\metadata\\jira_automation\\dummy_e2e_state.json",
+    "workflow": [
+        {
+            "id": "test_1",
+            "kind": "issue",
+            "issue": {
+                "type": "Test",
+                "summary": "[DUMMY] Test 1 | Movimientos TDC | 2026-07-22 19:35:40",
+                "description": "Test dummy 1 para validar el E2E completo de Jira/Xray.",
+                "actions": "1. Ejecutar flujo dummy.\n2. Validar creación automática del Test.",
+                "labels": "",
+                "repository_path": "Operativas Críticas/Movimientos TDC",
+                "auto_submit": true
+            }
+        },
+        {
+            "id": "test_2",
+            "kind": "issue",
+            "issue": {
+                "type": "Test",
+                "summary": "[DUMMY] Test 2 | Movimientos TDC | 2026-07-22 19:35:40",
+                "description": "Test dummy 2 para validar el E2E completo de Jira/Xray.",
+                "actions": "1. Ejecutar flujo dummy.\n2. Validar creación automática del Test.",
+                "labels": "",
+                "repository_path": "Operativas Críticas/Movimientos TDC",
+                "auto_submit": true
+            }
+        },
+        {
+            "id": "test_set_1",
+            "kind": "issue",
+            "issue": {
+                "type": "Test Set",
+                "summary": "[DUMMY] Test Set 1 | Movimientos TDC | 2026-07-22 19:35:40",
+                "description": "Test Set dummy 1 asociado al Test dummy 1.",
+                "labels": "",
+                "repository_path": "Operativas Críticas/Movimientos TDC",
+                "test_key_refs": [
+                    "test_1"
+                ],
+                "auto_submit": true
+            }
+        },
+        {
+            "id": "test_set_2",
+            "kind": "issue",
+            "issue": {
+                "type": "Test Set",
+                "summary": "[DUMMY] Test Set 2 | Movimientos TDC | 2026-07-22 19:35:40",
+                "description": "Test Set dummy 2 asociado al Test dummy 2.",
+                "labels": "",
+                "repository_path": "Operativas Críticas/Movimientos TDC",
+                "test_key_refs": [
+                    "test_2"
+                ],
+                "auto_submit": true
+            }
+        },
+        {
+            "id": "test_plan_1",
+            "kind": "issue",
+            "issue": {
+                "type": "Test Plan",
+                "summary": "CRQ-DUMMY | Integration | 2026-07-22 19:35:40",
+                "description": "Test Plan dummy asociado a los tests creados en el flujo E2E.",
+                "labels": "#integrado",
+                "typology_name": "Integration",
+                "begin_date": "15/Jul/26 09:00 AM",
+                "end_date": "22/Jul/26 09:00 AM",
+                "associated_test_key_refs": [
+                    "test_1",
+                    "test_2"
+                ],
+                "auto_submit": true
+            }
+        }
+    ]
+}

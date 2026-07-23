@@ -1,0 +1,1461 @@
+{
+    "crq": "CR3",
+    "updated_at": "2026-07-22T16:06:15",
+    "last_request": {
+        "service_id": "detalle_de_movimiento",
+        "service_name": "Detalle De Movimiento",
+        "transaction_id": "j6ect001_int",
+        "transaction_name": "J6Ect001  -Int",
+        "version_id": "v2",
+        "version_label": "V2",
+        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+        "selected_objects": [
+            "data",
+            "data.transaction",
+            "data.transaction.acquirer",
+            "data.transaction.additionalInformation",
+            "data.transaction.bank",
+            "data.transaction.contract",
+            "data.transaction.detail",
+            "data.transaction.exchangeRate",
+            "data.transaction.financingType",
+            "data.transaction.moneyFlow",
+            "data.transaction.paymentChannel",
+            "data.transaction.statement",
+            "data.transaction.status",
+            "data.transaction.transactionType",
+            "data.transaction.additionalInformation.user",
+            "data.transaction.contract.product",
+            "data.transaction.detail.purchase",
+            "data.transaction.financingType.status",
+            "data.transaction.operationAmounts[]",
+            "data.transaction.transactionType.internalCode",
+            "data.transaction.detail.purchase.points",
+            "data.transaction.detail.purchase.store",
+            "data.transaction.exchangeRate.targets[]",
+            "data.transaction.detail.purchase.points.monetaryEquivalence",
+            "data.transaction.detail.purchase.points.totalAmount",
+            "data.transaction.detail.purchase.store.activitySector",
+            "data.transaction.detail.purchase.store.address",
+            "data.transaction.detail.purchase.store.category"
+        ]
+    },
+    "plans": [
+        {
+            "tipo_id": "integrado",
+            "tipo_nombre": "Integrado",
+            "estrategia": "Base principal de pruebas de afectación. Aquí se seleccionan y ajustan los test sets y tests requeridos.",
+            "nombre": "SA3 | CR3 | Integrado",
+            "jira_url": null,
+            "test_sets": [
+                {
+                    "path": "data",
+                    "nombre": "Detalle De Movimiento | V2 | data",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "Sin tests asociados todavía",
+                            "estado": "Pendiente de definición"
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.operationDate | Base",
+                            "estado": "Diseñado",
+                            "field": "operationDate",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.concept | Base",
+                            "estado": "Diseñado",
+                            "field": "concept",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.transactionNumber | Base",
+                            "estado": "Diseñado",
+                            "field": "transactionNumber",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.cardType | Base",
+                            "estado": "Diseñado",
+                            "field": "cardType",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.valueDate | Base",
+                            "estado": "Diseñado",
+                            "field": "valueDate",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.accountedDate | Base",
+                            "estado": "Diseñado",
+                            "field": "accountedDate",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.hasAttachments | Base",
+                            "estado": "Diseñado",
+                            "field": "hasAttachments",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.acquirer",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > acquirer",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.acquirer.reference | Base",
+                            "estado": "Diseñado",
+                            "field": "reference",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.acquirer.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.additionalInformation",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > additionalInform..",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.additionalInformation.reference | Base",
+                            "estado": "Diseñado",
+                            "field": "reference",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.additionalInformation.isCredit | Base",
+                            "estado": "Diseñado",
+                            "field": "isCredit",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.additionalInformation.additionalData | Base",
+                            "estado": "Diseñado",
+                            "field": "additionalData",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.additionalInformation.isVisible | Base",
+                            "estado": "Diseñado",
+                            "field": "isVisible",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.additionalInformation.paymentGateway | Base",
+                            "estado": "Diseñado",
+                            "field": "paymentGateway",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.bank",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > bank",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.bank.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.contract",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > contract",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.contract.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "Sin tests asociados todavía",
+                            "estado": "Pendiente de definición"
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.exchangeRate",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > exchangeRate",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "Sin tests asociados todavía",
+                            "estado": "Pendiente de definición"
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.financingType",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > financingType",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.financingType.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.financingType.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.moneyFlow",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > moneyFlow",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.moneyFlow.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.moneyFlow.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.paymentChannel",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > paymentChannel",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.paymentChannel.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.statement",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > statement",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.statement.endDate | Base",
+                            "estado": "Diseñado",
+                            "field": "endDate",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.statement.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.statement.startDate | Base",
+                            "estado": "Diseñado",
+                            "field": "startDate",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.status",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > status",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.status.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.status.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.transactionType",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > transactionType",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.transactionType.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.transactionType.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.additionalInformation.user",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > additionalInform.. > user",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.additionalInformation.user.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.contract.product",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > contract > product",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.contract.product.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.contract.product.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.transactionType | Base",
+                            "estado": "Diseñado",
+                            "field": "transactionType",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.authorizationNumber | Base",
+                            "estado": "Diseñado",
+                            "field": "authorizationNumber",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.financingType.status",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > financingType > status",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.financingType.status.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.operationAmounts[]",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > operationAmounts[]",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.operationAmounts[].amount | Base",
+                            "estado": "Diseñado",
+                            "field": "amount",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.operationAmounts[].currency | Base",
+                            "estado": "Diseñado",
+                            "field": "currency",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.operationAmounts[].id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.transactionType.internalCode",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > transactionType > internalCode",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.transactionType.internalCode.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.transactionType.internalCode.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.points",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > points",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.applied | Base",
+                            "estado": "Diseñado",
+                            "field": "applied",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.obtained | Base",
+                            "estado": "Diseñado",
+                            "field": "obtained",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.store",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > store",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.exchangeRate.targets[]",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > exchangeRate > targets[]",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.exchangeRate.targets[].currency | Base",
+                            "estado": "Diseñado",
+                            "field": "currency",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.points.monetaryEquivalence",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > points > monetaryEquivale..",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.monetaryEquivalence.amount | Base",
+                            "estado": "Diseñado",
+                            "field": "amount",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.monetaryEquivalence.currency | Base",
+                            "estado": "Diseñado",
+                            "field": "currency",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.points.totalAmount",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > points > totalAmount",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.totalAmount.amount | Base",
+                            "estado": "Diseñado",
+                            "field": "amount",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.points.totalAmount.currency | Base",
+                            "estado": "Diseñado",
+                            "field": "currency",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.store.activitySector",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > store > activitySector",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.activitySector.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.activitySector.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.store.address",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > store > address",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.address.country | Base",
+                            "estado": "Diseñado",
+                            "field": "country",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.address.location | Base",
+                            "estado": "Diseñado",
+                            "field": "location",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                },
+                {
+                    "path": "data.transaction.detail.purchase.store.category",
+                    "nombre": "Detalle De Movimiento | V2 | data > transaction > detail > purchase > store > category",
+                    "source": {
+                        "request_key": "detalle_de_movimiento|j6ect001_int|v2",
+                        "service_id": "detalle_de_movimiento",
+                        "service_name": "Detalle De Movimiento",
+                        "transaction_id": "j6ect001_int",
+                        "transaction_name": "J6Ect001  -Int",
+                        "transaction_libraries": [
+                            "KMOLR032",
+                            "KMOLR031",
+                            "KMOLR030",
+                            "J6ECR004",
+                            "CARD_TRANSACTION"
+                        ],
+                        "transaction_channel": "",
+                        "repository_folder": "",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "Detalle de movimiento/J6ECT001 - INT",
+                        "bruno_request": {
+                            "collection": "Detalle de movimiento",
+                            "request": "J6ECT001 - INT",
+                            "file": "C:\\Users\\XMF5325\\Documents\\Bruno Colections\\Detalle de movimiento\\J6ECT001 - INT.bru",
+                            "logical_path": "Detalle de movimiento/J6ECT001 - INT"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.category.name | Base",
+                            "estado": "Diseñado",
+                            "field": "name",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "data.transaction.detail.purchase.store.category.id | Base",
+                            "estado": "Diseñado",
+                            "field": "id",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                }
+            ],
+            "last_sync": "2026-07-22T16:06:15"
+        }
+    ]
+}

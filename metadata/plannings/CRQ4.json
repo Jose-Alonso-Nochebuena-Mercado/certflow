@@ -1,0 +1,118 @@
+{
+    "crq": "CRQ4",
+    "updated_at": "2026-07-22T12:52:11",
+    "last_request": {
+        "service_id": "movimientos",
+        "service_name": "Movimientos",
+        "transaction_id": "detalle",
+        "transaction_name": "Detalle",
+        "version_id": "v2",
+        "version_label": "V2",
+        "request_key": "movimientos|detalle|v2",
+        "bruno_request_id": "movimientos/detalle/v2/get_detalle_v2",
+        "selected_objects": [
+            "card_extension",
+            "card_extension.commerce"
+        ]
+    },
+    "plans": [
+        {
+            "tipo_id": "integrado",
+            "tipo_nombre": "Integrado",
+            "estrategia": "Base principal de pruebas de afectación. Aquí se seleccionan y ajustan los test sets y tests requeridos.",
+            "nombre": "SDA4 | CRQ4 | Integrado",
+            "jira_url": null,
+            "test_sets": [
+                {
+                    "path": "card_extension",
+                    "nombre": "Core Bancking - Payments | card_extension",
+                    "source": {
+                        "request_key": "movimientos|detalle|v2",
+                        "service_id": "movimientos",
+                        "service_name": "Movimientos",
+                        "transaction_id": "detalle",
+                        "transaction_name": "Detalle",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "movimientos/detalle/v2/get_detalle_v2",
+                        "bruno_request": {
+                            "collection": "movimientos",
+                            "folder": "detalle/v2",
+                            "request": "get_detalle_v2",
+                            "file": "collections/movimientos/detalle/v2/get_detalle_v2.bru",
+                            "logical_path": "movimientos/detalle/v2/get_detalle_v2"
+                        }
+                    },
+                    "coverage": {
+                        "exists": false,
+                        "jira_test_set": "",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "Sin tests asociados todavía",
+                            "estado": "Pendiente de definición"
+                        }
+                    ]
+                },
+                {
+                    "path": "card_extension.commerce",
+                    "nombre": "Core Bancking - Payments | card_extension.commerce",
+                    "source": {
+                        "request_key": "movimientos|detalle|v2",
+                        "service_id": "movimientos",
+                        "service_name": "Movimientos",
+                        "transaction_id": "detalle",
+                        "transaction_name": "Detalle",
+                        "version_id": "v2",
+                        "version_label": "V2",
+                        "bruno_request_id": "movimientos/detalle/v2/get_detalle_v2",
+                        "bruno_request": {
+                            "collection": "movimientos",
+                            "folder": "detalle/v2",
+                            "request": "get_detalle_v2",
+                            "file": "collections/movimientos/detalle/v2/get_detalle_v2.bru",
+                            "logical_path": "movimientos/detalle/v2/get_detalle_v2"
+                        }
+                    },
+                    "coverage": {
+                        "exists": true,
+                        "jira_test_set": "XTS-2401",
+                        "jira_url": ""
+                    },
+                    "tests": [
+                        {
+                            "nombre": "card_extension.commerce.id | Base",
+                            "estado": "Reutilizado",
+                            "field": "id",
+                            "jira_key": "XT-24011",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "card_extension.commerce.name | Base",
+                            "estado": "Reutilizado",
+                            "field": "name",
+                            "jira_key": "XT-24012",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "card_extension.commerce.address | Base",
+                            "estado": "Diseñado",
+                            "field": "address",
+                            "jira_key": "",
+                            "jira_url": ""
+                        },
+                        {
+                            "nombre": "card_extension.commerce.country | Base",
+                            "estado": "Diseñado",
+                            "field": "country",
+                            "jira_key": "",
+                            "jira_url": ""
+                        }
+                    ]
+                }
+            ],
+            "last_sync": "2026-07-22T12:52:11"
+        }
+    ]
+}

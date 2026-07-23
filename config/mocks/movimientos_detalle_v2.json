@@ -1,0 +1,25 @@
+{
+    "card_extension": {
+        "commerce": {
+            "id": "AMAZON",
+            "name": "Amazon MX",
+            "address": "Av. Principal 123",
+            "country": "MX"
+        },
+        "financing": {
+            "installments": 12,
+            "deferred_months": 3,
+            "applied_fees": {
+                "amount": 25.4,
+                "currency": "MXN"
+            }
+        }
+    },
+    "movement": {
+        "id": "12345",
+        "amount": 799.55,
+        "currency": "MXN",
+        "status": "SETTLED"
+    }
+}
+

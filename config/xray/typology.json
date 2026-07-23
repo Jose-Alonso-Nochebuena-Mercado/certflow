@@ -1,0 +1,19 @@
+{
+    "types": [
+        {
+            "id": "integrado",
+            "nombre": "Integrado",
+            "label": "#integrado"
+        },
+        {
+            "id": "accepted",
+            "nombre": "Aceptación",
+            "label": "#accepted"
+        },
+        {
+            "id": "regresion",
+            "nombre": "Regresión",
+            "label": "#regresion"
+        }
+    ]
+}

@@ -1,0 +1,29 @@
+{
+    "completed": {
+        "test_1": {
+            "jira_key": "MCREDITSM4-6027",
+            "jira_url": "https://jira.globaldevtools.bbva.com/browse/MCREDITSM4-6027",
+            "type": "Test"
+        },
+        "test_2": {
+            "jira_key": "MCREDITSM4-6028",
+            "jira_url": "https://jira.globaldevtools.bbva.com/browse/MCREDITSM4-6028",
+            "type": "Test"
+        },
+        "test_set_1": {
+            "jira_key": "MCREDITSM4-6029",
+            "jira_url": "https://jira.globaldevtools.bbva.com/browse/MCREDITSM4-6029",
+            "type": "Test Set"
+        },
+        "test_set_2": {
+            "jira_key": "MCREDITSM4-6030",
+            "jira_url": "https://jira.globaldevtools.bbva.com/browse/MCREDITSM4-6030",
+            "type": "Test Set"
+        },
+        "test_plan_1": {
+            "jira_key": "MCREDITSM4-6031",
+            "jira_url": "https://jira.globaldevtools.bbva.com/browse/MCREDITSM4-6031",
+            "type": "Test Plan"
+        }
+    }
+}

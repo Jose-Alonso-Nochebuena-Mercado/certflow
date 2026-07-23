@@ -1,0 +1,60 @@
+{
+    "entries": [
+        {
+            "service_id": "movimientos",
+            "transaction_id": "detalle",
+            "version_id": "v2",
+            "object_path": "card_extension.commerce",
+            "jira_test_set": "XTS-2401",
+            "jira_url": "",
+            "tests": [
+                {
+                    "field": "id",
+                    "jira_test": "XT-24011",
+                    "jira_url": ""
+                },
+                {
+                    "field": "name",
+                    "jira_test": "XT-24012",
+                    "jira_url": ""
+                }
+            ]
+        },
+        {
+            "service_id": "movimientos",
+            "transaction_id": "detalle",
+            "version_id": "v2",
+            "object_path": "card_extension.financing",
+            "jira_test_set": "XTS-2402",
+            "jira_url": "",
+            "tests": [
+                {
+                    "field": "installments",
+                    "jira_test": "XT-24021",
+                    "jira_url": ""
+                }
+            ]
+        },
+        {
+            "service_id": "movimientos",
+            "transaction_id": "listado",
+            "version_id": null,
+            "object_path": "movements[]",
+            "jira_test_set": "XTS-2501",
+            "jira_url": "",
+            "tests": [
+                {
+                    "field": "movement_id",
+                    "jira_test": "XT-25011",
+                    "jira_url": ""
+                },
+                {
+                    "field": "status",
+                    "jira_test": "XT-25012",
+                    "jira_url": ""
+                }
+            ]
+        }
+    ]
+}
+

@@ -1,0 +1,9 @@
+{
+    "company_logo": "ui/assets/bbva.png",
+    "jira_base_url": "https://jira.globaldevtools.bbva.com/secure/StructureBoard.jspa?s=4256#",
+    "jira_project_key": "MCREDITSM4",
+    "jira_project_name": "Mexico-CREDITS-MP CREDITS SERVICES NEXT-GEN",
+    "jira_test_repository_path": "Operativas Críticas/Movimientos TDC",
+    "jira_browser_channel": "chrome",
+    "theme": "bbva"
+}

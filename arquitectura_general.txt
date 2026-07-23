@@ -1,0 +1,89 @@
+CertFlow/
+│
+├── main.py
+│
+├── app/
+│   │
+│   ├── core/
+│   │   ├── config_manager.py
+│   │   ├── logger.py
+│   │   ├── exceptions.py
+│   │   └── constants.py
+│   │
+│   ├── domain/
+│   │   ├── crq.py
+│   │   ├── transaction.py
+│   │   ├── object_model.py
+│   │   ├── validation.py
+│   │   ├── scenario.py
+│   │   └── test_model.py
+│   │
+│   ├── services/
+│   │   ├── discovery_service.py
+│   │   ├── metadata_service.py
+│   │   ├── execution_service.py
+│   │   ├── evidence_service.py
+│   │   ├── bruno_service.py
+│   │   └── xray_service.py
+│   │
+│   ├── execution/
+│   │   ├── request_executor.py
+│   │   ├── validator.py
+│   │   ├── response_parser.py
+│   │   └── result_manager.py
+│   │
+│   ├── storage/
+│   │   ├── json_repository.py
+│   │   ├── metadata_repository.py
+│   │   ├── execution_repository.py
+│   │   └── xray_repository.py
+│   │
+│   └── ui/
+│       │
+│       ├── main_window/
+│       │   ├── window.py
+│       │   ├── controller.py
+│       │   └── layout.py
+│       │
+│       ├── screens/
+│       │   │
+│       │   ├── crq_screen.py
+│       │   ├── discovery_screen.py
+│       │   ├── metadata_screen.py
+│       │   ├── scenario_screen.py
+│       │   ├── execution_screen.py
+│       │   ├── evidence_screen.py
+│       │   └── summary_screen.py
+│       │
+│       ├── components/
+│       │   ├── tree_view.py
+│       │   ├── dropdown.py
+│       │   ├── selector.py
+│       │   ├── json_viewer.py
+│       │   ├── bruno_viewer.py
+│       │   └── progress_bar.py
+│       │
+│       └── styles/
+│           ├── theme.css
+│           └── icons/
+│
+├── metadata/
+│   ├── productos.json
+│   ├── transacciones.json
+│   ├── objetos.json
+│   ├── validaciones.json
+│   └── escenarios.json
+│
+├── config/
+│   ├── sistema.json
+│   ├── bruno.json
+│   ├── jira.json
+│   └── environments.json
+│
+├── executions/
+│
+├── evidence/
+│
+├── xray/
+│
+└── logs/

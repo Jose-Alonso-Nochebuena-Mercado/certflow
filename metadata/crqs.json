@@ -1,0 +1,38 @@
+{
+    "CR1": {
+        "sdatool": "SDA1",
+        "descripcion": "des1",
+        "portafolio": "Core Bancking - Payments",
+        "fecha_instalacion": "2026-07-22",
+        "certificaciones": [
+            "integrado"
+        ]
+    },
+    "CR2": {
+        "sdatool": "SD2",
+        "descripcion": "des2",
+        "portafolio": "Core Bancking - Payments",
+        "fecha_instalacion": "2026-07-22",
+        "certificaciones": [
+            "integrado"
+        ]
+    },
+    "CR3": {
+        "sdatool": "SA3",
+        "descripcion": "des3",
+        "portafolio": "Core Bancking - Payments",
+        "fecha_instalacion": "2026-07-22",
+        "certificaciones": [
+            "integrado"
+        ]
+    },
+    "CR|": {
+        "sdatool": "SD1",
+        "descripcion": "1",
+        "portafolio": "Core Bancking - Payments",
+        "fecha_instalacion": "2026-07-22",
+        "certificaciones": [
+            "integrado"
+        ]
+    }
+}

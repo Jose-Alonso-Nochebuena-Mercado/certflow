@@ -1,0 +1,19 @@
+{
+    "mode": "assisted",
+    "source": "home_dummy_buttons",
+    "browser_channel": "chrome",
+    "start_url": "https://jira.globaldevtools.bbva.com/secure/StructureBoard.jspa?s=4256#",
+    "project": {
+        "key": "MCREDITSM4",
+        "name": "Mexico-CREDITS-MP CREDITS SERVICES NEXT-GEN"
+    },
+    "issue": {
+        "type": "Test Set",
+        "summary": "[DUMMY] Test Set | Movimientos TDC | 2026-07-22 19:10:48",
+        "description": "Test Set dummy generado desde el Home para validar la creación asistida en Jira/Xray.\n\nIncluye nombre y descripción de prueba para revisar la automatización antes de conectarla al flujo real.",
+        "labels": "",
+        "repository_path": "Operativas Críticas/Movimientos TDC",
+        "test_keys": [],
+        "auto_submit": true
+    }
+}
