@@ -311,11 +311,18 @@ class TestExecutionPage(BasePage):
         output_dir = self.obtener_directorio_capturas()
         nombre = self.construir_nombre_captura(entry)
         output_path = output_dir / f"{nombre}.png"
-        self.update_idletasks()
-        self.update()
-        bbox = self.obtener_capture_bbox()
-        image = ImageGrab.grab(bbox=bbox)
-        image.save(output_path)
+        capture_window = None
+        try:
+            capture_window = self.crear_ventana_captura(entry)
+            bbox = self.obtener_capture_bbox_ventana(capture_window)
+            image = ImageGrab.grab(bbox=bbox)
+            image.save(output_path)
+        finally:
+            if capture_window is not None:
+                try:
+                    capture_window.destroy()
+                except Exception:
+                    pass
         return output_path
 
 
@@ -331,10 +338,10 @@ class TestExecutionPage(BasePage):
 
     def construir_nombre_captura(self, entry):
         case = entry["case"]
+        ticket = self.obtener_ticket_test_plan(entry) or str(entry["plan"].get("tipo_nombre", "test_plan"))
         bruto = "_".join([
-            str(entry["test_set"].get("path", "general")),
-            str(entry["test"].get("field", "campo")),
-            str(case.get("case_name", f"caso_{entry['case_index']}"))
+            str(ticket),
+            str(case.get("case_name") or entry["test"].get("field") or f"caso_{entry['case_index']}")
         ])
         return "".join(char if char.isalnum() or char in {"_", "-"} else "_" for char in bruto).strip("_") or f"caso_{entry['case_index']}"
 
@@ -499,6 +506,133 @@ class TestExecutionPage(BasePage):
             int((x + width) * scale),
             int((y + height) * scale)
         )
+
+
+    def crear_ventana_captura(self, entry):
+        window = ctk.CTkToplevel(self)
+        window.title("Bruno Capture")
+        window.geometry("1500x900+120+120")
+        window.configure(fg_color="#121212")
+        window.attributes("-topmost", True)
+
+        surface = ctk.CTkFrame(window, fg_color="#1E1E1E", corner_radius=0)
+        surface.pack(fill="both", expand=True, padx=0, pady=0)
+        surface.grid_columnconfigure(0, weight=0)
+        surface.grid_columnconfigure(1, weight=1)
+        surface.grid_rowconfigure(0, weight=1)
+
+        sidebar = ctk.CTkFrame(surface, fg_color="#171717", corner_radius=0, width=250)
+        sidebar.grid(row=0, column=0, sticky="nsw")
+        sidebar.grid_propagate(False)
+        ctk.CTkLabel(sidebar, text="Collections", font=("Arial", 14, "bold"), text_color="#ECECEC").pack(anchor="w", padx=16, pady=(16, 6))
+        ctk.CTkLabel(sidebar, text="Path Bruno activo", font=("Arial", 11), text_color="#9A9A9A").pack(anchor="w", padx=16, pady=(0, 10))
+        tree = ctk.CTkFrame(sidebar, fg_color="transparent")
+        tree.pack(fill="both", expand=True, padx=10, pady=(0, 12))
+
+        for index, segment in enumerate(self.obtener_collection_segments()):
+            is_last = index == len(self.obtener_collection_segments()) - 1
+            prefix = "▾" if index == 0 else ("└" if is_last else "├")
+            label = ctk.CTkLabel(
+                tree,
+                text=f"{prefix} {segment}",
+                font=("Consolas", 11, "bold" if is_last else "normal"),
+                text_color="#F5F5F5" if is_last else "#B8B8B8",
+                fg_color="#2A2A2A" if is_last else "transparent",
+                corner_radius=8,
+                anchor="w",
+                padx=8,
+                pady=6
+            )
+            label.pack(fill="x", padx=6, pady=(0, 4))
+
+        stage = ctk.CTkFrame(surface, fg_color="#1E1E1E", corner_radius=0)
+        stage.grid(row=0, column=1, sticky="nsew")
+
+        header = ctk.CTkFrame(stage, fg_color="#202020", corner_radius=0)
+        header.pack(fill="x")
+        brand = ctk.CTkFrame(header, fg_color="transparent")
+        brand.pack(side="left", padx=14, pady=10)
+        logo = ctk.CTkLabel(brand, text="")
+        logo.pack(side="left", padx=(0, 8))
+        if self.bruno_logo is not None:
+            logo.configure(image=self.bruno_logo)
+        ctk.CTkLabel(brand, text="Bruno", font=("Arial", 18, "bold"), text_color="#F5F5F5").pack(side="left")
+        ctk.CTkLabel(header, text=self.obtener_environment_label(entry), font=("Arial", 12, "bold"), text_color="#F6B13D", fg_color="#2A241A", corner_radius=12, padx=12, pady=6).pack(side="right", padx=14)
+
+        toolbar = ctk.CTkFrame(stage, fg_color="#262626", corner_radius=0)
+        toolbar.pack(fill="x")
+        ctk.CTkLabel(toolbar, text=str(self.request_info.get("transaction_name", "Transacción")).strip() or "Transacción", font=("Arial", 15, "bold"), text_color="#F5F5F5").pack(side="left", padx=14, pady=10)
+        ctk.CTkLabel(toolbar, text=f"{entry['plan'].get('tipo_nombre', 'Plan')} · {entry['case'].get('case_name', 'Runner')}", font=("Arial", 12, "bold"), text_color="#E0E0E0", fg_color="#343434", corner_radius=8, padx=12, pady=6).pack(side="left", padx=(6, 0))
+
+        request_line = ctk.CTkFrame(stage, fg_color="#303030", corner_radius=0)
+        request_line.pack(fill="x", padx=14, pady=(12, 10))
+        ctk.CTkLabel(request_line, text=self.method_label.cget("text"), font=("Arial", 12, "bold"), text_color="#F0F0F0", fg_color="#3A3A3A", corner_radius=10, padx=10, pady=6).pack(side="left", padx=(10, 8), pady=8)
+        ctk.CTkLabel(request_line, text=self.url_label.cget("text"), font=("Consolas", 12), text_color="#8AE234", anchor="w").pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+        content = ctk.CTkFrame(stage, fg_color="transparent")
+        content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
+        content.grid_columnconfigure(0, weight=1, uniform="capture")
+        content.grid_columnconfigure(1, weight=1, uniform="capture")
+        request_box = self.crear_bruno_panel(content, 0, "Body", "JSON", WARNING_SOFT, 620, True)
+        response_box = self.crear_bruno_panel(content, 1, "Response", "JSON", ACCENT_SOFT, 620, True)
+        self.reemplazar_texto(request_box, self.request_text.get("1.0", "end").strip(), True)
+        self.reemplazar_texto(response_box, self.response_text.get("1.0", "end").strip(), True)
+        try:
+            line = self.obtener_linea_target_actual()
+            if line is not None:
+                response_box.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
+                response_box.tag_add("target_row", f"{line}.0", f"{line}.end")
+                self.centrar_linea_texto(response_box, line)
+        except Exception:
+            pass
+
+        window.update_idletasks()
+        window.update()
+        return window
+
+
+    def obtener_capture_bbox_ventana(self, window):
+        scale = self.obtener_escala_pantalla()
+        x = window.winfo_rootx()
+        y = window.winfo_rooty()
+        width = window.winfo_width()
+        height = window.winfo_height()
+        return (
+            int(x * scale),
+            int(y * scale),
+            int((x + width) * scale),
+            int((y + height) * scale)
+        )
+
+
+    def obtener_ticket_test_plan(self, entry):
+        automation = dict(self.planning_data.get("automation", {}))
+        state_path = str(automation.get("state_path", "")).strip()
+        if not state_path:
+            return ""
+        path = Path(state_path)
+        if not path.exists():
+            return ""
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return ""
+        target_tipo_id = entry.get("plan", {}).get("tipo_id")
+        step_id = ""
+        for index, plan in enumerate(self.planning_data.get("plans", []), start=1):
+            if plan.get("tipo_id") == target_tipo_id:
+                step_id = f"test_plan_{index}"
+                break
+        if not step_id:
+            return ""
+        return str(state.get("completed", {}).get(step_id, {}).get("jira_key", "")).strip()
+
+
+    def obtener_linea_target_actual(self):
+        ranges = self.response_text.tag_ranges("target_row")
+        if not ranges:
+            return None
+        return int(str(ranges[0]).split(".")[0])
 
 
     def obtener_escala_pantalla(self):

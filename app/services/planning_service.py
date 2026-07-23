@@ -122,6 +122,9 @@ def normalizar_planning_data(
         "last_request": data.get(
             "last_request"
         ),
+        "automation": data.get(
+            "automation"
+        ),
         "plans": list(
             data.get(
                 "plans",

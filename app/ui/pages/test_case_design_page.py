@@ -440,10 +440,25 @@ class TestCaseDesignPage(BasePage):
             self.live_response_result = resultado
             response_json = resultado.get("response", {})
             target_value = self.obtener_valor_desde_path(response_json, response_path)
-            target_text = self.valor_a_texto(target_value) or "Sin dato"
             status = resultado.get("status_code", "-")
             reason = resultado.get("reason", "")
             elapsed_ms = resultado.get("elapsed_ms", "-")
+            actual_preview = self.resolver_actual_value_preview(
+                target_value,
+                status,
+                reason
+            )
+            self.actual_value_var.set(actual_preview)
+            self.persistir_test_actual(False)
+            expected_value = self.construir_valor_esperado(
+                self.request_value_var.get().strip(),
+                self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
+            )
+            self.actualizar_estado_comparacion(
+                actual_preview,
+                expected_value,
+                self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
+            )
             self.render_response_json(response_json, response_path)
             self.reemplazar_texto(
                 self.response_value_text,
@@ -452,12 +467,22 @@ class TestCaseDesignPage(BasePage):
                     f"HTTP: {status} {reason}\n"
                     f"Tiempo: {elapsed_ms} ms\n\n"
                     f"Campo objetivo: {self.obtener_ultima_clave_path(response_path)}\n"
-                    f"Valor encontrado: {target_text}"
+                    f"Valor encontrado: {actual_preview or 'Sin dato'}"
                 ),
                 False
             )
         except BrunoExecutionError as error:
             self.live_response_result = {"error": str(error)}
+            self.actual_value_var.set("HTTP error")
+            self.persistir_test_actual(False)
+            self.actualizar_estado_comparacion(
+                self.actual_value_var.get().strip(),
+                self.construir_valor_esperado(
+                    self.request_value_var.get().strip(),
+                    self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
+                ),
+                self.comparison_var.get().strip() or COMPARISON_OPERATORS[0]
+            )
             self.reemplazar_texto(self.response_preview_text, str(error), False)
             self.reemplazar_texto(
                 self.response_value_text,
@@ -803,6 +828,8 @@ class TestCaseDesignPage(BasePage):
 
 
     def construir_valor_esperado(self, request_value, comparison_operator):
+        if self.case_type_var.get().strip() == "Error":
+            return "HTTP distinto de 200"
         operator = comparison_operator or COMPARISON_OPERATORS[0]
         if operator == "Igual":
             return request_value
@@ -818,6 +845,16 @@ class TestCaseDesignPage(BasePage):
 
 
     def actualizar_estado_comparacion(self, actual_value, expected_value, comparison_operator):
+        if self.case_type_var.get().strip() == "Error":
+            status_code = self.obtener_status_code_preview()
+            if status_code is None:
+                self.comparison_status.configure(text="Pendiente de validar", text_color=TEXT_SECONDARY, fg_color=SURFACE_ALT)
+                return
+            if status_code != 200:
+                self.comparison_status.configure(text="Condición cumplida", text_color=SUCCESS, fg_color=SUCCESS_SOFT)
+                return
+            self.comparison_status.configure(text="Condición no cumplida", text_color=ERROR, fg_color=ERROR_SOFT)
+            return
         actual = str(actual_value or "").strip()
         if not actual:
             self.comparison_status.configure(text="Pendiente de validar", text_color=TEXT_SECONDARY, fg_color=SURFACE_ALT)
@@ -843,6 +880,36 @@ class TestCaseDesignPage(BasePage):
         if comparison_operator == "Contiene":
             return request_value in actual
         return False
+
+
+    def resolver_actual_value_preview(self, target_value, status_code, reason):
+        target_text = self.valor_a_texto(target_value).strip()
+        try:
+            normalized_status = int(status_code)
+        except Exception:
+            normalized_status = None
+
+        if self.case_type_var.get().strip() == "Error":
+            if normalized_status is None:
+                return "HTTP error"
+            suffix = f" {reason}" if str(reason or "").strip() else ""
+            return f"HTTP {normalized_status}{suffix}".strip()
+
+        if normalized_status is not None and normalized_status != 200 and not target_text:
+            suffix = f" {reason}" if str(reason or "").strip() else ""
+            return f"HTTP {normalized_status}{suffix}".strip()
+
+        return target_text or "Sin dato"
+
+
+    def obtener_status_code_preview(self):
+        if isinstance(self.live_response_result, dict):
+            status = self.live_response_result.get("status_code")
+            try:
+                return int(status)
+            except Exception:
+                return None
+        return None
 
 
     def reemplazar_entry(self, entry, value):

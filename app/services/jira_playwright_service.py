@@ -300,6 +300,32 @@ def construir_identificador_test(test_set, test):
     )
 
 
+def construir_identificador_test_case(test_set, test, case, case_index):
+
+    payload = dict(
+        test.get(
+            "issue_payload",
+            {}
+        )
+    )
+
+    case = dict(
+        case or {}
+    )
+
+    return "|".join(
+        [
+            str(test_set.get("path", "")).strip(),
+            str(test.get("field", "")).strip(),
+            str(payload.get("summary", "")).strip(),
+            str(case_index),
+            str(case.get("case_name", "")).strip(),
+            str(case.get("response_field_path", "")).strip(),
+            str(case.get("request_value", "")).strip()
+        ]
+    )
+
+
 def construir_payload_planning_desde_crq(
     crq,
     planning_data
@@ -347,40 +373,91 @@ def construir_payload_planning_desde_crq(
 
                     continue
 
-                test_signature = construir_identificador_test(
-                    test_set,
-                    test
-                )
-
-                if test_signature in test_step_ids:
-
-                    test_refs.append(
-                        test_step_ids[test_signature]
-                    )
-                    continue
-
                 test_payload = dict(
                     test.get("issue_payload", {})
                 )
-                step_id = f"test_{len(test_step_ids) + 1}"
-                workflow.append(
+
+                draft_cases = list(
+                    test.get("draft_cases", [])
+                ) or [
                     {
-                        "id": step_id,
-                        "kind": "issue",
-                        "issue": {
-                            "type": "Test",
-                            "summary": test_payload.get("summary", f"{crq_id} | Test {test_index}"),
-                            "description": test_payload.get("description", ""),
-                            "actions": test_payload.get("actions", test.get("actions", "")),
-                            "repository_path": test_payload.get("repository_path", ""),
-                            "auto_submit": True
-                        }
+                        "case_name": f"{field_name} | Base",
+                        "action": test_payload.get("actions", test.get("actions", "")),
+                        "response_field_path": str(test.get("field", "")).strip(),
+                        "request_value": ""
                     }
-                )
-                test_step_ids[test_signature] = step_id
-                test_refs.append(
-                    step_id
-                )
+                ]
+
+                for case_index, case in enumerate(draft_cases, start=1):
+
+                    test_signature = construir_identificador_test_case(
+                        test_set,
+                        test,
+                        case,
+                        case_index
+                    )
+
+                    if test_signature in test_step_ids:
+
+                        test_refs.append(
+                            test_step_ids[test_signature]
+                        )
+                        continue
+
+                    case_name = str(
+                        dict(case).get("case_name", "")
+                    ).strip()
+                    base_summary = test_payload.get(
+                        "summary",
+                        f"{crq_id} | Test {test_index}"
+                    )
+
+                    if case_name and case_name.lower() not in base_summary.lower():
+
+                        summary = f"{base_summary} | {case_name}"
+
+                    else:
+
+                        summary = base_summary
+
+                    description = str(
+                        test_payload.get("description", "")
+                    ).strip()
+
+                    if case_name:
+
+                        description = (
+                            f"{description}\n\nEscenario: {case_name}"
+                            if description
+                            else f"Escenario: {case_name}"
+                        )
+
+                    actions = str(
+                        dict(case).get(
+                            "action",
+                            test_payload.get("actions", test.get("actions", ""))
+                        )
+                    ).strip()
+
+                    step_id = f"test_{len(test_step_ids) + 1}"
+                    workflow.append(
+                        {
+                            "id": step_id,
+                            "kind": "issue",
+                            "issue": {
+                                "type": "Test",
+                                "summary": summary,
+                                "description": description,
+                                "actions": actions,
+                                "repository_path": test_payload.get("repository_path", ""),
+                                "auto_submit": True
+                            }
+                        }
+                    )
+                    test_step_ids[test_signature] = step_id
+                    test_refs.append(
+                        step_id
+                    )
 
             test_set_signature = construir_identificador_test_set(
                 test_set

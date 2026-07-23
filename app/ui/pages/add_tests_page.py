@@ -3,7 +3,7 @@ import customtkinter as ctk
 from app.services.crq_service import normalizar_certificaciones
 from app.services.discovery_service import cargar_discovery
 from app.services.metadata_service import cargar_metadata
-from app.services.planning_service import actualizar_planning_con_seleccion
+from app.services.planning_service import actualizar_planning_con_seleccion, cargar_planning_crq
 from app.services.test_catalog_service import (
     CatalogoServiciosError,
     agregar_servicio_catalogo,
@@ -73,6 +73,7 @@ class AddTestsPage(BasePage):
         self.last_request_key = None
         self.last_execution_result = None
         self.repository_path_input = None
+        self.planning_actual = None
 
         super().__init__(
             parent,
@@ -106,6 +107,9 @@ class AddTestsPage(BasePage):
             crq_id
         )
         self.discovery_actual = cargar_discovery(
+            crq_id
+        )
+        self.planning_actual = cargar_planning_crq(
             crq_id
         )
 
@@ -1070,6 +1074,8 @@ class AddTestsPage(BasePage):
             resultado
         )
 
+        self.rehidratar_estado_desde_planning()
+
         self.render_object_map()
         self.render_selected_tests()
 
@@ -1470,6 +1476,9 @@ class AddTestsPage(BasePage):
         existe_actual = bool(
             coverage.get("exists")
         )
+        tiene_plan_local = self.nodo_tiene_plan_local(
+            nodo
+        )
         children = nodo.get(
             "children",
             []
@@ -1477,11 +1486,11 @@ class AddTestsPage(BasePage):
 
         if not children:
 
-            if existe_actual:
+            if existe_actual or tiene_plan_local:
 
                 return {
                     "status": "complete",
-                    "label": "Cubierto",
+                    "label": "Cubierto" if existe_actual else "Seleccionado",
                     "fg_color": "#EAF7F0",
                     "border_color": "#B9E2C8",
                     "badge_color": "#EAF7F0",
@@ -1514,18 +1523,18 @@ class AddTestsPage(BasePage):
             for child in child_states
         )
 
-        if existe_actual and all_children_complete:
+        if (existe_actual or tiene_plan_local) and all_children_complete:
 
             return {
                 "status": "complete",
-                "label": "Cubierto",
+                "label": "Cubierto" if existe_actual else "Seleccionado",
                 "fg_color": "#EAF7F0",
                 "border_color": "#B9E2C8",
                 "badge_color": "#EAF7F0",
                 "badge_text_color": "#2E7D32"
             }
 
-        if existe_actual or any_child_with_plan:
+        if existe_actual or tiene_plan_local or any_child_with_plan:
 
             return {
                 "status": "partial",
@@ -1544,6 +1553,24 @@ class AddTestsPage(BasePage):
             "badge_color": "#F4F6FA",
             "badge_text_color": TEXT_MUTED
         }
+
+
+    def nodo_tiene_plan_local(self, nodo):
+
+        state = self.object_states.get(
+            nodo["item"]["path"],
+            {}
+        )
+
+        selected = state.get(
+            "selected"
+        )
+
+        if selected and selected.get():
+
+            return True
+
+        return False
 
 
     def construir_arbol_objetos(self, objetos):
@@ -2190,6 +2217,7 @@ class AddTestsPage(BasePage):
             self.metadata_actual,
             self.discovery_actual
         )
+        self.planning_actual = planning_data
 
         self.navigate(
             "test_plan_design",
@@ -2256,6 +2284,108 @@ class AddTestsPage(BasePage):
                 )
 
         return resultado
+
+
+    def rehidratar_estado_desde_planning(self):
+
+        if not self.planning_actual or not self.request_info:
+
+            return
+
+        request_key = str(
+            self.request_info.get("request_key", "")
+        ).strip()
+
+        if not request_key:
+
+            return
+
+        selected_by_path = {}
+
+        for plan in self.planning_actual.get(
+            "plans",
+            []
+        ):
+
+            for test_set in plan.get(
+                "test_sets",
+                []
+            ):
+
+                source = dict(
+                    test_set.get("source", {})
+                )
+
+                if source.get("request_key") != request_key:
+
+                    continue
+
+                path = str(
+                    test_set.get("path", "")
+                ).strip()
+
+                if not path:
+
+                    continue
+
+                field_names = selected_by_path.setdefault(
+                    path,
+                    set()
+                )
+
+                for test in test_set.get(
+                    "tests",
+                    []
+                ):
+
+                    field_name = str(
+                        test.get("field", "")
+                    ).strip()
+
+                    if field_name:
+
+                        field_names.add(
+                            field_name
+                        )
+
+        for path, state in self.object_states.items():
+
+            selected_fields = selected_by_path.get(
+                path,
+                set()
+            )
+            selected_var = state.get(
+                "selected"
+            )
+
+            if selected_var:
+
+                selected_var.set(
+                    bool(selected_fields or path in selected_by_path)
+                )
+
+            field_vars = state.get(
+                "field_vars",
+                {}
+            )
+
+            if not field_vars:
+
+                continue
+
+            if selected_fields:
+
+                for field_name, variable in field_vars.items():
+
+                    variable.set(
+                        field_name in selected_fields
+                    )
+
+            elif path in selected_by_path:
+
+                for variable in field_vars.values():
+
+                    variable.set(True)
 
 
     def obtener_texto_estrategia(self):
