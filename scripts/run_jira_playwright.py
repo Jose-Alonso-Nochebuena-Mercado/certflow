@@ -191,6 +191,14 @@ def resolver_referencias_issue(issue, completed):
             if completed.get(ref, {}).get("jira_key")
         ]
 
+    if issue.get("associated_test_set_key_refs"):
+
+        issue["associated_test_set_keys"] = [
+            completed.get(ref, {}).get("jira_key", "")
+            for ref in issue.get("associated_test_set_key_refs", [])
+            if completed.get(ref, {}).get("jira_key")
+        ]
+
     return issue
 
 
@@ -853,7 +861,13 @@ def completar_labels(page, value):
     )
 
 
-def completar_multi_issue_picker(page, textarea_id, issue_keys, log_name):
+def completar_multi_issue_picker(
+    page,
+    issue_keys,
+    log_name,
+    selectors=None,
+    labels=None
+):
 
     valores = [
         str(valor).strip()
@@ -865,12 +879,21 @@ def completar_multi_issue_picker(page, textarea_id, issue_keys, log_name):
 
         return False
 
-    locator = buscar_por_selectores(
-        page,
-        [
-            f"#{textarea_id}"
-        ]
-    )
+    locator = None
+
+    if selectors:
+
+        locator = buscar_por_selectores(
+            page,
+            selectors
+        )
+
+    if locator is None and labels:
+
+        locator = buscar_por_labels(
+            page,
+            labels
+        )
 
     if locator is None or not locator_es_visible(locator):
 
@@ -1360,9 +1383,14 @@ def rellenar_formulario(page, payload):
         page.wait_for_timeout(1200)
         completar_multi_issue_picker(
             page,
-            "customfield_14612-textarea",
             issue.get("test_keys", []),
-            "Tests del Test Set"
+            "Tests del Test Set",
+            selectors=[
+                "#customfield_14612-textarea"
+            ],
+            labels=[
+                "Tests"
+            ]
         )
 
     if issue_type == "Test Plan":
@@ -1396,12 +1424,48 @@ def rellenar_formulario(page, payload):
             issue.get("begin_date"),
             "Begin Date"
         )
-        completar_multi_issue_picker(
-            page,
-            "customfield_14626-textarea",
-            issue.get("associated_test_keys", []),
-            "Tests asociados al Test Plan"
+        associated_test_set_keys = issue.get(
+            "associated_test_set_keys",
+            []
         )
+
+        associated_test_keys = issue.get(
+            "associated_test_keys",
+            []
+        )
+
+        if associated_test_set_keys:
+
+            completar_multi_issue_picker(
+                page,
+                associated_test_set_keys,
+                "Test Sets asociados al Test Plan",
+                selectors=[
+                    "#customfield_14627-textarea",
+                    "#customfield_14628-textarea",
+                    "#customfield_14625-textarea"
+                ],
+                labels=[
+                    "Associated Test Sets",
+                    "Test Sets",
+                    "Test Set"
+                ]
+            )
+
+        elif associated_test_keys:
+
+            completar_multi_issue_picker(
+                page,
+                associated_test_keys,
+                "Tests asociados al Test Plan",
+                selectors=[
+                    "#customfield_14626-textarea"
+                ],
+                labels=[
+                    "Associated Tests",
+                    "Tests"
+                ]
+            )
 
     labels = issue.get("labels")
 
@@ -1695,4 +1759,3 @@ if __name__ == "__main__":
 
         print(f"[Jira Playwright] Error: {error}")
         raise
-

@@ -32,7 +32,8 @@ from app.services.crq_service import (
 from app.services.jira_playwright_service import (
     JiraPlaywrightConfigError,
     JiraPlaywrightRuntimeError,
-    lanzar_dummy_e2e_desde_home
+    lanzar_dummy_e2e_desde_home,
+    lanzar_dummy_test_plan_desde_home
 )
 
 from app.ui.components.crq_card import (
@@ -243,7 +244,7 @@ class HomePage(BasePage):
 
         ayuda = ctk.CTkLabel(
             body,
-            text="Bloque temporal para probar el E2E dummy completo en Jira/Xray: 2 tests, 2 test sets y 1 test plan con estado persistido para reintentos.",
+            text="Bloque temporal para probar el E2E dummy completo o relanzar solo el Test Plan reutilizando los Test Set ya creados.",
             font=get_font(BODY),
             text_color=TEXT_SECONDARY,
             justify="left"
@@ -301,6 +302,25 @@ class HomePage(BasePage):
             padx=(0, 10)
         )
 
+        boton_test_plan = ctk.CTkButton(
+            acciones,
+            text="Crear solo Test Plan",
+            width=220,
+            height=36,
+            corner_radius=18,
+            fg_color=SURFACE,
+            hover_color=PRIMARY_LIGHT,
+            border_width=1,
+            border_color=BORDER,
+            text_color=TEXT_PRIMARY,
+            command=self.crear_solo_test_plan_dummy
+        )
+
+        boton_test_plan.pack(
+            side="left",
+            padx=(0, 10)
+        )
+
 
     def mostrar_accion_temporal(self):
 
@@ -339,6 +359,48 @@ class HomePage(BasePage):
                 "Se lanzó la prueba E2E Jira/Xray.\n\n"
                 f"Payload: {payload_path.name}\n"
                 "Playwright abrirá Jira en Chrome y ejecutará el flujo dummy completo con estado persistido para reintentos."
+            ),
+            "success"
+        )
+
+
+    def crear_solo_test_plan_dummy(self):
+
+        try:
+
+            payload_path = lanzar_dummy_test_plan_desde_home()
+
+        except JiraPlaywrightConfigError as error:
+
+            MessageBox(
+                self,
+                (
+                    "No se pudo lanzar la creación del Test Plan dummy.\n\n"
+                    f"{error}\n\n"
+                    "Completa la configuración en Settings > Jira y vuelve a intentarlo."
+                ),
+                "warning"
+            )
+            return
+
+        except JiraPlaywrightRuntimeError as error:
+
+            MessageBox(
+                self,
+                (
+                    "No se pudo iniciar Playwright para crear el Test Plan dummy.\n\n"
+                    f"{error}"
+                ),
+                "error"
+            )
+            return
+
+        MessageBox(
+            self,
+            (
+                "Se lanzó la creación del Test Plan dummy.\n\n"
+                f"Payload: {payload_path.name}\n"
+                "Playwright abrirá Jira en Chrome y creará únicamente un nuevo Test Plan reutilizando los Test Set previamente creados."
             ),
             "success"
         )

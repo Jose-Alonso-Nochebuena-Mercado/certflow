@@ -28,15 +28,21 @@ ISSUE_TYPE_BY_ACTION = {
 
 TYPOLOGY_BY_PLAN_NAME = {
     "Integration": {
-        "label": "#integrado"
+        "label": "#integrado",
+        "summary_tag": "#Integration"
     },
     "Acceptance": {
-        "label": "#accepted"
+        "label": "#accepted",
+        "summary_tag": "#Acceptance"
     },
     "Regression": {
-        "label": "#regresion"
+        "label": "#regresion",
+        "summary_tag": "#Regression"
     }
 }
+
+DUMMY_CRQ = "CRQ-DUMMY"
+DUMMY_DOMAIN = "Movimientos TDC"
 
 
 class JiraPlaywrightConfigError(Exception):
@@ -186,7 +192,7 @@ def formatear_fecha_jira(fecha):
     )
 
 
-def construir_issue_dummy(issue_type, repository_path):
+def obtener_contexto_dummy():
 
     timestamp = datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
@@ -194,11 +200,120 @@ def construir_issue_dummy(issue_type, repository_path):
     hoy = datetime.now()
     hace_semana = hoy - timedelta(days=7)
 
+    return {
+        "timestamp": timestamp,
+        "today": hoy,
+        "week_ago": hace_semana,
+        "crq": DUMMY_CRQ,
+        "domain": DUMMY_DOMAIN
+    }
+
+
+def construir_summary_dummy_test(numero, contexto):
+
+    return (
+        f"[DUMMY] Test {numero} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def construir_summary_dummy_test_set(numero, contexto):
+
+    suffix = f" {numero}" if str(numero).strip() else ""
+
+    return (
+        f"[DUMMY] Test Set{suffix} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def construir_summary_dummy_test_plan(
+    typology_name,
+    contexto
+):
+
+    summary_tag = TYPOLOGY_BY_PLAN_NAME.get(
+        typology_name,
+        {}
+    ).get(
+        "summary_tag",
+        f"#{typology_name}"
+    )
+
+    return (
+        f"{contexto['crq']} | "
+        f"{summary_tag} | "
+        f"{contexto['domain']} | "
+        f"{contexto['timestamp']}"
+    )
+
+
+def cargar_estado_dummy_e2e():
+
+    if not STATE_PATH.exists():
+
+        return {}
+
+    with open(
+        STATE_PATH,
+        "r",
+        encoding="utf-8"
+    ) as archivo:
+
+        return json.load(
+            archivo
+        )
+
+
+def obtener_test_set_keys_dummy():
+
+    completed = dict(
+        cargar_estado_dummy_e2e().get(
+            "completed",
+            {}
+        )
+    )
+    keys = [
+        completed.get(step_id, {}).get("jira_key", "")
+        for step_id in (
+            "test_set_1",
+            "test_set_2"
+        )
+    ]
+
+    keys = [
+        key
+        for key in keys
+        if key
+    ]
+
+    if keys:
+
+        return keys
+
+    fallback = [
+        data.get("jira_key", "")
+        for data in completed.values()
+        if data.get("type") == "Test Set" and data.get("jira_key")
+    ]
+
+    return fallback
+
+
+def construir_issue_dummy(issue_type, repository_path):
+
+    contexto = obtener_contexto_dummy()
+
     if issue_type == "Test Set":
 
         return {
             "type": issue_type,
-            "summary": f"[DUMMY] Test Set | Movimientos TDC | {timestamp}",
+            "summary": construir_summary_dummy_test_set(
+                None,
+                contexto
+            ),
             "description": (
                 "Test Set dummy generado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
                 "Incluye nombre y descripción de prueba para revisar la automatización antes de conectarla al flujo real."
@@ -215,7 +330,10 @@ def construir_issue_dummy(issue_type, repository_path):
 
         return {
             "type": issue_type,
-            "summary": f"CRQ-DUMMY | {typology_name} | {timestamp}",
+            "summary": construir_summary_dummy_test_plan(
+                typology_name,
+                contexto
+            ),
             "description": (
                 "Test Plan dummy generado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
                 f"Tipología: {typology_name}\n"
@@ -224,15 +342,23 @@ def construir_issue_dummy(issue_type, repository_path):
             "labels": TYPOLOGY_BY_PLAN_NAME[typology_name]["label"],
             "repository_path": "",
             "typology_name": typology_name,
-            "begin_date": formatear_fecha_jira(hace_semana),
-            "end_date": formatear_fecha_jira(hoy),
-            "associated_test_keys": [],
+            "begin_date": formatear_fecha_jira(
+                contexto["week_ago"]
+            ),
+            "end_date": formatear_fecha_jira(
+                contexto["today"]
+            ),
+            "associated_test_set_keys": [],
             "auto_submit": True
         }
 
     return {
         "type": issue_type,
-        "summary": f"[DUMMY] {issue_type} de prueba | {timestamp}",
+        "summary": (
+            f"[DUMMY] {issue_type} de prueba | "
+            f"{contexto['domain']} | "
+            f"{contexto['timestamp']}"
+        ),
         "description": (
             "Registro de prueba generado desde el Home de CertFlow para validar "
             "la automatización asistida con Playwright.\n\n"
@@ -303,15 +429,11 @@ def construir_payload_dummy_e2e():
         config
     )
 
+    contexto = obtener_contexto_dummy()
     repository_path = config.get(
         "jira_test_repository_path",
         ""
     )
-    timestamp = datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-    hoy = datetime.now()
-    hace_semana = hoy - timedelta(days=7)
 
     return {
         "mode": "dummy_e2e",
@@ -341,7 +463,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test",
-                    "summary": f"[DUMMY] Test 1 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test(
+                        1,
+                        contexto
+                    ),
                     "description": "Test dummy 1 para validar el E2E completo de Jira/Xray.",
                     "actions": (
                         "1. Ejecutar flujo dummy.\n"
@@ -357,7 +482,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test",
-                    "summary": f"[DUMMY] Test 2 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test(
+                        2,
+                        contexto
+                    ),
                     "description": "Test dummy 2 para validar el E2E completo de Jira/Xray.",
                     "actions": (
                         "1. Ejecutar flujo dummy.\n"
@@ -373,7 +501,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Set",
-                    "summary": f"[DUMMY] Test Set 1 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test_set(
+                        1,
+                        contexto
+                    ),
                     "description": "Test Set dummy 1 asociado al Test dummy 1.",
                     "labels": "",
                     "repository_path": repository_path,
@@ -388,7 +519,10 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Set",
-                    "summary": f"[DUMMY] Test Set 2 | Movimientos TDC | {timestamp}",
+                    "summary": construir_summary_dummy_test_set(
+                        2,
+                        contexto
+                    ),
                     "description": "Test Set dummy 2 asociado al Test dummy 2.",
                     "labels": "",
                     "repository_path": repository_path,
@@ -403,15 +537,22 @@ def construir_payload_dummy_e2e():
                 "kind": "issue",
                 "issue": {
                     "type": "Test Plan",
-                    "summary": f"CRQ-DUMMY | Integration | {timestamp}",
+                    "summary": construir_summary_dummy_test_plan(
+                        "Integration",
+                        contexto
+                    ),
                     "description": "Test Plan dummy asociado a los tests creados en el flujo E2E.",
                     "labels": TYPOLOGY_BY_PLAN_NAME["Integration"]["label"],
                     "typology_name": "Integration",
-                    "begin_date": formatear_fecha_jira(hace_semana),
-                    "end_date": formatear_fecha_jira(hoy),
-                    "associated_test_key_refs": [
-                        "test_1",
-                        "test_2"
+                    "begin_date": formatear_fecha_jira(
+                        contexto["week_ago"]
+                    ),
+                    "end_date": formatear_fecha_jira(
+                        contexto["today"]
+                    ),
+                    "associated_test_set_key_refs": [
+                        "test_set_1",
+                        "test_set_2"
                     ],
                     "auto_submit": True
                 }
@@ -512,4 +653,78 @@ def lanzar_dummy_e2e_desde_home():
     )
 
 
+def construir_payload_dummy_test_plan_only():
+
+    config = obtener_configuracion_jira_automatizacion()
+    validar_configuracion_jira(
+        config
+    )
+
+    test_set_keys = obtener_test_set_keys_dummy()
+
+    if not test_set_keys:
+
+        raise JiraPlaywrightRuntimeError(
+            "No se encontraron Test Set dummy previos en el estado persistido. Primero ejecuta la prueba E2E completa para crear los Test y Test Set base."
+        )
+
+    contexto = obtener_contexto_dummy()
+
+    return {
+        "mode": "dummy_test_plan_only",
+        "source": "home_dummy_test_plan_only",
+        "browser_channel": config.get(
+            "jira_browser_channel",
+            "chrome"
+        ),
+        "start_url": config.get(
+            "jira_base_url",
+            ""
+        ),
+        "project": {
+            "key": config.get(
+                "jira_project_key",
+                ""
+            ),
+            "name": config.get(
+                "jira_project_name",
+                ""
+            )
+        },
+        "workflow": [
+            {
+                "kind": "issue",
+                "issue": {
+                    "type": "Test Plan",
+                    "summary": construir_summary_dummy_test_plan(
+                        "Integration",
+                        contexto
+                    ),
+                    "description": (
+                        "Test Plan dummy relanzado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
+                        "Este flujo reutiliza únicamente los Test Set ya creados previamente."
+                    ),
+                    "labels": TYPOLOGY_BY_PLAN_NAME["Integration"]["label"],
+                    "typology_name": "Integration",
+                    "begin_date": formatear_fecha_jira(
+                        contexto["week_ago"]
+                    ),
+                    "end_date": formatear_fecha_jira(
+                        contexto["today"]
+                    ),
+                    "associated_test_set_keys": test_set_keys,
+                    "auto_submit": True
+                }
+            }
+        ]
+    }
+
+
+def lanzar_dummy_test_plan_desde_home():
+
+    payload = construir_payload_dummy_test_plan_only()
+
+    return lanzar_automatizacion_jira(
+        payload
+    )
 
