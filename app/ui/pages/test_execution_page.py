@@ -192,6 +192,8 @@ class TestExecutionPage(BasePage):
         meta = ctk.CTkFrame(header, fg_color="transparent")
         meta.pack(side="right")
 
+        case_badge = None
+
         if panel_kind == "request":
             tab_items = [("Params", False), ("Body", True), ("Headers", False), ("Auth", False), ("Vars", False), ("Script", False), ("Assert", False), ("Tests", False)]
             meta_badges = [
@@ -230,6 +232,8 @@ class TestExecutionPage(BasePage):
             for text in ["Docs", "Settings"]:
                 ctk.CTkLabel(secondary_tabs, text=text, font=("Arial", 11), text_color="#BEBEBE").pack(side="left", padx=(0, 10))
         else:
+            case_badge = ctk.CTkLabel(secondary_tabs, text="Caso no ejecutado", font=("Arial", 11, "bold"), text_color="#7FDBFF", fg_color="#193544", corner_radius=10, padx=10, pady=4)
+            case_badge.pack(side="left")
             ctk.CTkLabel(secondary_tabs, text="Pretty", font=("Arial", 11), text_color="#BEBEBE").pack(side="right")
 
         editor = ctk.CTkFrame(card, fg_color="#161616", corner_radius=0)
@@ -239,13 +243,14 @@ class TestExecutionPage(BasePage):
 
         gutter = ctk.CTkTextbox(editor, width=42, height=height, corner_radius=0, border_width=0, fg_color="#111111", text_color="#6F6F6F", wrap="none", font=("Consolas", 12))
         gutter.grid(row=0, column=0, sticky="ns")
-        textbox = ctk.CTkTextbox(editor, height=height, corner_radius=0, border_width=0, fg_color="#161616", text_color="#E7E7E7", wrap="word", font=("Consolas", 12))
+        textbox = ctk.CTkTextbox(editor, height=height, corner_radius=0, border_width=0, fg_color="#161616", text_color="#E7E7E7", wrap="none", font=("Consolas", 12))
         textbox.grid(row=0, column=1, sticky="nsew")
 
         self.bruno_panel_registry[str(textbox)] = {
             "gutter": gutter,
             "kind": panel_kind,
-            "meta_labels": meta_labels
+            "meta_labels": meta_labels,
+            "case_badge": case_badge
         }
 
         textbox.configure(yscrollcommand=lambda first, _last, gutter=gutter: gutter.yview_moveto(first))
@@ -258,7 +263,8 @@ class TestExecutionPage(BasePage):
             "card": card,
             "textbox": textbox,
             "gutter": gutter,
-            "meta_labels": meta_labels
+            "meta_labels": meta_labels,
+            "case_badge": case_badge
         }
 
 
@@ -324,6 +330,7 @@ class TestExecutionPage(BasePage):
         self.tab_label.configure(text=f"{entry['plan'].get('tipo_nombre', 'Plan')} · {case.get('case_name', 'Runner')}")
         self.reemplazar_texto(self.request_text, body, True)
         self.reemplazar_texto(self.response_text, "Esperando ejecución...", False)
+        self.actualizar_case_badge(self.response_panel, entry)
         self.actualizar_bruno_contexto_visual(entry)
 
 
@@ -657,6 +664,7 @@ class TestExecutionPage(BasePage):
         response_box = response_panel["textbox"]
         self.reemplazar_texto(request_box, self.request_text.get("1.0", "end").strip(), True)
         self.reemplazar_texto(response_box, self.response_text.get("1.0", "end").strip(), True)
+        self.actualizar_case_badge(response_panel, entry)
         self.actualizar_meta_response_panel(self.current_result, response_panel)
         try:
             line = self.obtener_linea_target_actual()
@@ -797,15 +805,8 @@ class TestExecutionPage(BasePage):
 
 
     def construir_firma_ejecucion(self, plan, test_set, test, case):
-        if self.es_test_set_plan_specific(test_set):
-            return "|".join([
-                str(plan.get("tipo_id", "")),
-                str(test_set.get("path", "")),
-                str(test.get("field", "")),
-                str(case.get("case_name", ""))
-            ])
         return "|".join([
-            "common",
+            str(plan.get("tipo_id", "")),
             str(test_set.get("path", "")),
             str(test.get("field", "")),
             str(case.get("case_name", ""))
@@ -1017,6 +1018,7 @@ class TestExecutionPage(BasePage):
 
         if not isinstance(resultado, dict) or resultado.get("error"):
             values = ["-", "- ms", "- B"]
+            status_color = "#C8C8C8"
         else:
             status_code = resultado.get("status_code", "-")
             reason = str(resultado.get("reason", "")).strip()
@@ -1028,9 +1030,44 @@ class TestExecutionPage(BasePage):
                 raw_text = json.dumps(response_payload, ensure_ascii=False, indent=4)
             size_bytes = len(raw_text.encode("utf-8")) if raw_text else 0
             values = [f"{status_code} {reason}".strip(), f"{elapsed_ms} ms", f"{size_bytes} B"]
+            try:
+                normalized_status = int(status_code)
+            except Exception:
+                normalized_status = None
+
+            if normalized_status is not None and 200 <= normalized_status < 300:
+                status_color = "#86D37C"
+            elif normalized_status is not None and normalized_status >= 400:
+                status_color = "#FF7B72"
+            else:
+                status_color = "#F6B13D"
 
         for label, value in zip(labels, values):
             label.configure(text=value)
+
+        labels[0].configure(text_color=status_color)
+
+
+    def actualizar_case_badge(self, panel, entry):
+        if not panel:
+            return
+
+        badge = panel.get("case_badge")
+        if badge is None:
+            return
+
+        case = dict(entry.get("case", {}))
+        plan_name = str(entry.get("plan", {}).get("tipo_nombre", "Plan")).strip() or "Plan"
+        case_name = str(case.get("case_name", "Caso")).strip() or "Caso"
+        case_type = str(case.get("case_type", "")).strip()
+        field_name = str(entry.get("test", {}).get("field", "Campo")).strip() or "Campo"
+        badge_text = f"{plan_name} · {field_name}"
+        if case_type:
+            badge_text += f" · {case_type}"
+        if case_name and case_name.lower() not in badge_text.lower():
+            badge_text += f" · {case_name}"
+
+        badge.configure(text=badge_text, text_color="#6FE3FF", fg_color="#173847")
 
 
     def actualizar_lineas_textbox(self, textbox, value):
