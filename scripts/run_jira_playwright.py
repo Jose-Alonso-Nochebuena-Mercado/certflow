@@ -1466,6 +1466,7 @@ def rellenar_formulario(page, payload):
             issue.get("begin_date"),
             "Begin Date"
         )
+        page.wait_for_timeout(1500)
         associated_test_set_keys = issue.get(
             "associated_test_set_keys",
             []
