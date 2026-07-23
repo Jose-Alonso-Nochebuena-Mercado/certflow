@@ -147,7 +147,8 @@ class TestCaseDesignPage(BasePage):
         footer = ctk.CTkFrame(self.workspace, fg_color="transparent")
         footer.pack(fill="x", pady=(0, 8))
         ctk.CTkButton(footer, text="Volver a Test Sets", width=160, height=40, corner_radius=20, command=self.volver_a_test_sets, **SECONDARY_BUTTON).pack(side="right")
-        ctk.CTkButton(footer, text="Volver al planning", width=160, height=40, corner_radius=20, fg_color=PRIMARY_SOFT, hover_color=PRIMARY_LIGHT, text_color=PRIMARY, border_width=1, border_color=BORDER, command=self.finalizar).pack(side="right", padx=(0, 10))
+        ctk.CTkButton(footer, text="Crear en Jira/Xray", width=170, height=40, corner_radius=20, fg_color=PRIMARY, hover_color=PRIMARY_LIGHT, text_color="#FFFFFF", command=self.finalizar).pack(side="right", padx=(0, 10))
+        ctk.CTkButton(footer, text="Volver al planning", width=160, height=40, corner_radius=20, fg_color=PRIMARY_SOFT, hover_color=PRIMARY_LIGHT, text_color=PRIMARY, border_width=1, border_color=BORDER, command=self.volver_al_planning).pack(side="right", padx=(0, 10))
 
         self.enlazar_eventos()
 
@@ -516,6 +517,12 @@ class TestCaseDesignPage(BasePage):
         self.persistir_test_actual(True)
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
         self.navigate("test_set_design", crq=self.crq, planning_data=self.planning_data, request_info=self.request_info, response_data=self.response_data, current_plan_id=self.current_plan_id)
+
+
+    def volver_al_planning(self):
+        self.persistir_test_actual(True)
+        guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
+        self.navigate("crq_detail", crq=self.crq)
 
 
     def finalizar(self):
