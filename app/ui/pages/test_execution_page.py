@@ -38,6 +38,7 @@ class TestExecutionPage(BasePage):
         self.bruno_logo = None
         self.collection_node_labels = []
         self.bruno_panel_registry = {}
+        self.current_target_context = {}
         super().__init__(parent, app)
 
 
@@ -193,6 +194,7 @@ class TestExecutionPage(BasePage):
         meta.pack(side="right")
 
         case_badge = None
+        target_badge = None
 
         if panel_kind == "request":
             tab_items = [("Params", False), ("Body", True), ("Headers", False), ("Auth", False), ("Vars", False), ("Script", False), ("Assert", False), ("Tests", False)]
@@ -234,6 +236,8 @@ class TestExecutionPage(BasePage):
         else:
             case_badge = ctk.CTkLabel(secondary_tabs, text="Caso no ejecutado", font=("Arial", 11, "bold"), text_color="#7FDBFF", fg_color="#193544", corner_radius=10, padx=10, pady=4)
             case_badge.pack(side="left")
+            target_badge = ctk.CTkLabel(secondary_tabs, text="Campo objetivo: pendiente", font=("Arial", 11, "bold"), text_color="#124B2E", fg_color="#DDF5E4", corner_radius=10, padx=10, pady=4)
+            target_badge.pack(side="left", padx=(8, 0))
             ctk.CTkLabel(secondary_tabs, text="Pretty", font=("Arial", 11), text_color="#BEBEBE").pack(side="right")
 
         editor = ctk.CTkFrame(card, fg_color="#161616", corner_radius=0)
@@ -250,7 +254,8 @@ class TestExecutionPage(BasePage):
             "gutter": gutter,
             "kind": panel_kind,
             "meta_labels": meta_labels,
-            "case_badge": case_badge
+            "case_badge": case_badge,
+            "target_badge": target_badge
         }
 
         textbox.configure(yscrollcommand=lambda first, _last, gutter=gutter: gutter.yview_moveto(first))
@@ -264,7 +269,8 @@ class TestExecutionPage(BasePage):
             "textbox": textbox,
             "gutter": gutter,
             "meta_labels": meta_labels,
-            "case_badge": case_badge
+            "case_badge": case_badge,
+            "target_badge": target_badge
         }
 
 
@@ -331,6 +337,7 @@ class TestExecutionPage(BasePage):
         self.reemplazar_texto(self.request_text, body, True)
         self.reemplazar_texto(self.response_text, "Esperando ejecución...", False)
         self.actualizar_case_badge(self.response_panel, entry)
+        self.actualizar_target_badge(self.response_panel, entry["response_field_path"], None)
         self.actualizar_bruno_contexto_visual(entry)
 
 
@@ -343,18 +350,28 @@ class TestExecutionPage(BasePage):
             resultado = ejecutar_request_bruno_preview(self.request_info, body_override_text=body_text)
         except BrunoExecutionError as error:
             self.current_result = {"error": str(error)}
+            self.current_target_context = {
+                "path": entry["response_field_path"],
+                "value": None
+            }
             self.reemplazar_texto(self.response_text, str(error), False)
             self.reemplazar_texto(self.execution_text, f"Error ejecutando caso\n\n{error}", False)
             self.actualizar_meta_response_panel(None)
+            self.actualizar_target_badge(self.response_panel, entry["response_field_path"], None)
             return
 
         self.current_result = resultado
         response_json = resultado.get("response", {})
         response_path = entry["response_field_path"]
         target_value = self.obtener_valor_desde_path(response_json, response_path)
+        self.current_target_context = {
+            "path": response_path,
+            "value": target_value
+        }
         self.render_response_json(response_json, response_path)
         self.reemplazar_texto(self.execution_text, f"HTTP: {resultado.get('status_code', '-')} {resultado.get('reason', '')}\nTiempo: {resultado.get('elapsed_ms', '-')} ms\n\nCampo objetivo: {self.obtener_ultima_clave_path(response_path)}\nValor encontrado: {self.valor_a_texto(target_value) or 'Sin dato'}", False)
         self.actualizar_meta_response_panel(resultado)
+        self.actualizar_target_badge(self.response_panel, response_path, target_value)
 
 
     def capturar_actual(self):
@@ -667,19 +684,35 @@ class TestExecutionPage(BasePage):
         request_box = request_panel["textbox"]
         response_box = response_panel["textbox"]
         self.reemplazar_texto(request_box, self.request_text.get("1.0", "end").strip(), True)
-        self.reemplazar_texto(response_box, self.response_text.get("1.0", "end").strip(), True)
         self.actualizar_case_badge(response_panel, entry)
+        target_context = dict(self.current_target_context or {})
+        self.actualizar_target_badge(response_panel, target_context.get("path", entry.get("response_field_path", "")), target_context.get("value"))
         self.actualizar_meta_response_panel(self.current_result, response_panel)
+
+        content_text = self.response_text.get("1.0", "end").strip()
+        target_line = None
+        target_column = None
+        response_payload = {}
+
+        if isinstance(self.current_result, dict):
+            response_payload = self.current_result.get("response", {})
+
+        if isinstance(response_payload, dict) and response_payload:
+            content_text, target_line, target_column = self.serializar_json_con_linea_objetivo(
+                response_payload,
+                entry.get("response_field_path", "")
+            )
+
+        self.reemplazar_texto(response_box, content_text, True)
+
         try:
-            line = self.obtener_linea_target_actual()
-            if line is not None:
-                column = self.obtener_columna_target_actual()
+            if target_line is not None:
                 response_box.tag_config("target_row", background="#DDF5E4", foreground="#124B2E")
                 response_box.tag_config("target_focus", background="#CBEFD6", foreground="#124B2E")
-                response_box.tag_add("target_row", f"{line}.0", f"{line}.end")
-                if column is not None:
-                    response_box.tag_add("target_focus", f"{line}.{column}", f"{line}.end")
-                self.posicionar_linea_texto(response_box, line, column, top_margin_lines=2)
+                response_box.tag_add("target_row", f"{target_line}.0", f"{target_line}.end")
+                if target_column is not None:
+                    response_box.tag_add("target_focus", f"{target_line}.{target_column}", f"{target_line}.end")
+                self.posicionar_linea_texto(response_box, target_line, target_column, top_margin_lines=2)
         except Exception:
             pass
 
@@ -1091,6 +1124,27 @@ class TestExecutionPage(BasePage):
             badge_text += f" · {case_name}"
 
         badge.configure(text=badge_text, text_color="#6FE3FF", fg_color="#173847")
+
+
+    def actualizar_target_badge(self, panel, response_path, target_value):
+        if not panel:
+            return
+
+        badge = panel.get("target_badge")
+        if badge is None:
+            return
+
+        field_name = self.obtener_ultima_clave_path(response_path) or str(response_path or "Campo").strip() or "Campo"
+        value_text = self.valor_a_texto(target_value).strip() if target_value is not None else "Sin dato"
+
+        if len(value_text) > 48:
+            value_text = value_text[:45] + "..."
+
+        badge.configure(
+            text=f"Campo objetivo: {field_name} = {value_text or 'Sin dato'}",
+            text_color="#124B2E",
+            fg_color="#DDF5E4"
+        )
 
 
     def actualizar_lineas_textbox(self, textbox, value):
