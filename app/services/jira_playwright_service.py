@@ -29,15 +29,15 @@ ISSUE_TYPE_BY_ACTION = {
 TYPOLOGY_BY_PLAN_NAME = {
     "Integration": {
         "label": "#integrado",
-        "summary_tag": "#Integration"
+        "summary_tag": "Integrado"
     },
     "Acceptance": {
         "label": "#accepted",
-        "summary_tag": "#Acceptance"
+        "summary_tag": "Aceptación"
     },
     "Regression": {
         "label": "#regresion",
-        "summary_tag": "#Regression"
+        "summary_tag": "Regresión"
     }
 }
 
@@ -340,7 +340,7 @@ def construir_issue_dummy(issue_type, repository_path):
                 f"Tipología: {typology_name}\n"
                 "Se usará después como base para la integración con el flujo real por CRQ."
             ),
-            "labels": TYPOLOGY_BY_PLAN_NAME[typology_name]["label"],
+            "labels": "",
             "repository_path": "",
             "typology_name": typology_name,
             "begin_date": formatear_fecha_jira(
@@ -543,7 +543,7 @@ def construir_payload_dummy_e2e():
                         contexto
                     ),
                     "description": "Test Plan dummy asociado a los tests creados en el flujo E2E.",
-                    "labels": TYPOLOGY_BY_PLAN_NAME["Integration"]["label"],
+                    "labels": "",
                     "typology_name": "Integration",
                     "begin_date": formatear_fecha_jira(
                         contexto["week_ago"]
@@ -705,7 +705,7 @@ def construir_payload_dummy_test_plan_only():
                         "Test Plan dummy relanzado desde el Home para validar la creación asistida en Jira/Xray.\n\n"
                         "Este flujo reutiliza únicamente los Test Set ya creados previamente."
                     ),
-                    "labels": TYPOLOGY_BY_PLAN_NAME["Integration"]["label"],
+                    "labels": "",
                     "typology_name": "Integration",
                     "begin_date": formatear_fecha_jira(
                         contexto["week_ago"]

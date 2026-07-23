@@ -1478,7 +1478,7 @@ def rellenar_formulario(page, payload):
 
         if associated_test_set_keys:
 
-            completar_multi_issue_picker(
+            if not completar_multi_issue_picker(
                 page,
                 associated_test_set_keys,
                 "Test Sets asociados al Test Plan",
@@ -1492,11 +1492,15 @@ def rellenar_formulario(page, payload):
                     "Test Sets",
                     "Test Set"
                 ]
-            )
+            ):
+
+                raise JiraAutomationError(
+                    "No se pudieron asociar los Test Set al Test Plan."
+                )
 
         elif associated_test_keys:
 
-            completar_multi_issue_picker(
+            if not completar_multi_issue_picker(
                 page,
                 associated_test_keys,
                 "Tests asociados al Test Plan",
@@ -1507,7 +1511,11 @@ def rellenar_formulario(page, payload):
                     "Associated Tests",
                     "Tests"
                 ]
-            )
+            ):
+
+                raise JiraAutomationError(
+                    "No se pudieron asociar los Tests al Test Plan."
+                )
 
     labels = issue.get("labels")
 
