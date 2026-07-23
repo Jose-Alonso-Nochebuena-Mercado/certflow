@@ -1740,11 +1740,14 @@ def rellenar_formulario(page, payload):
                 associated_test_set_keys,
                 "Test Sets asociados al Test Plan",
                 selectors=[
+                    "#customfield_14626-textarea",
                     "#customfield_14627-textarea",
                     "#customfield_14628-textarea",
                     "#customfield_14625-textarea"
                 ],
                 labels=[
+                    "Tests associated with a Test Plan",
+                    "Tests asociados al Test Plan",
                     "Associated Test Sets",
                     "Test Sets",
                     "Test Set"
