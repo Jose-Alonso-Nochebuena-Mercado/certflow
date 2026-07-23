@@ -1,7 +1,8 @@
+from copy import deepcopy
+
 import customtkinter as ctk
 
 from app.services.planning_service import cargar_planning_crq, guardar_planning_crq
-from app.ui.components.message_box import MessageBox
 from app.ui.pages.base_page import BasePage
 from app.ui.theme.colors import BACKGROUND, BORDER, PRIMARY, PRIMARY_LIGHT, PRIMARY_SOFT, SURFACE, SURFACE_ALT, TEXT_MUTED, TEXT_PRIMARY, TEXT_SECONDARY
 from app.ui.theme.dimensions import PAGE_HORIZONTAL_PADDING
@@ -62,7 +63,7 @@ class TestSetDesignPage(BasePage):
         hero.pack(fill="x", padx=PAGE_HORIZONTAL_PADDING, pady=(24, 14))
 
         ctk.CTkLabel(hero, text="Configurar Test Sets", font=get_font(TITLE), text_color=PRIMARY).pack()
-        ctk.CTkLabel(hero, text="Ajusta los Test Sets del plan actual. Aquí decides cuáles quedan activos y cómo se describen antes de pasar a los Tests uno por uno.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
+        ctk.CTkLabel(hero, text="Ajusta la base común de Test Sets. Esta configuración se comparte entre Integrado y Aceptación antes de pasar a los Tests uno por uno.", font=get_font(BODY), text_color=TEXT_SECONDARY, wraplength=1040, justify="center").pack(pady=(8, 0))
 
         layout = ctk.CTkFrame(self, fg_color="transparent")
         layout.pack(fill="both", expand=True, padx=PAGE_HORIZONTAL_PADDING, pady=(0, 18))
@@ -84,7 +85,7 @@ class TestSetDesignPage(BasePage):
         self.detail_card.pack(fill="x", pady=(0, 12))
         self.detail_title = ctk.CTkLabel(self.detail_card, text="Selecciona un Test Set", font=get_font(SUBTITLE), text_color=PRIMARY)
         self.detail_title.pack(anchor="w", padx=22, pady=(18, 6))
-        self.detail_hint = ctk.CTkLabel(self.detail_card, text="Puedes conservar la misma base de Integrado o quitar/agregar sets según lo que aplique para este plan.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=760)
+        self.detail_hint = ctk.CTkLabel(self.detail_card, text="Aquí solo decides cuáles sets siguen activos y cómo queda su payload base compartido.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=760)
         self.detail_hint.pack(anchor="w", padx=22, pady=(0, 18))
 
         self.form_card = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
@@ -97,8 +98,7 @@ class TestSetDesignPage(BasePage):
 
         footer = ctk.CTkFrame(self.workspace, fg_color="transparent")
         footer.pack(fill="x", pady=(0, 8))
-        ctk.CTkButton(footer, text="Volver a Test Plan", width=170, height=40, corner_radius=20, command=lambda: self.navigate("test_plan_design", crq=self.crq, planning_data=self.planning_data, request_info=self.request_info, response_data=self.response_data), **SECONDARY_BUTTON).pack(side="right")
-        ctk.CTkButton(footer, text="Guardar Test Sets", width=160, height=40, corner_radius=20, fg_color=PRIMARY, hover_color=PRIMARY_LIGHT, command=self.guardar_borrador).pack(side="right", padx=(0, 10))
+        ctk.CTkButton(footer, text="Volver a Test Plan", width=170, height=40, corner_radius=20, command=self.volver_a_test_plan, **SECONDARY_BUTTON).pack(side="right")
         ctk.CTkButton(footer, text="Continuar a Tests", width=180, height=40, corner_radius=20, fg_color=PRIMARY_SOFT, hover_color=PRIMARY_LIGHT, text_color=PRIMARY, border_width=1, border_color=BORDER, command=self.continuar_a_tests).pack(side="right", padx=(0, 10))
 
 
@@ -126,14 +126,14 @@ class TestSetDesignPage(BasePage):
         for widget in self.navigation_panel.winfo_children():
             widget.destroy()
 
-        plan = self.obtener_plan_actual()
+        plan = self.obtener_plan_base_comun()
         if not plan:
             return
 
-        self.plan_title.configure(text=f"Plan actual: {plan.get('tipo_nombre', 'Plan')}")
-        self.plan_hint.configure(text=f"{len(plan.get('test_sets', []))} test sets en esta base. Puedes desactivar sets para este plan si no aplican.")
+        self.plan_title.configure(text="Base común de Test Sets")
+        self.plan_hint.configure(text=f"{len(plan.get('test_sets', []))} test sets en esta base compartida. Lo que ajustes aquí se replica para Integrado y Aceptación.")
 
-        ctk.CTkLabel(self.navigation_panel, text="Test Sets del plan", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
+        ctk.CTkLabel(self.navigation_panel, text="Test Sets comunes", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
 
         for index, test_set in enumerate(plan.get("test_sets", [])):
             path = test_set.get("path", f"set_{index}")
@@ -158,7 +158,7 @@ class TestSetDesignPage(BasePage):
 
 
     def toggle_test_set(self, index):
-        plan = self.obtener_plan_actual()
+        plan = self.obtener_plan_base_comun()
         if not plan:
             return
         test_set = plan.get("test_sets", [])[index]
@@ -180,7 +180,7 @@ class TestSetDesignPage(BasePage):
         test_set = self.obtener_test_set_actual()
         if not test_set:
             return
-        payload = self.asegurar_payload_test_set(self.obtener_plan_actual(), test_set)
+        payload = self.asegurar_payload_test_set(self.obtener_plan_base_comun(), test_set)
         self.detail_title.configure(text=f"{test_set.get('path', 'General')} · Test Set")
         self.reemplazar_entry(self.summary_entry, payload.get("summary", ""))
         self.reemplazar_entry(self.repository_entry, payload.get("repository_path", self.request_info.get("repository_folder", "")))
@@ -191,10 +191,11 @@ class TestSetDesignPage(BasePage):
         test_set = self.obtener_test_set_actual()
         if not test_set:
             return
-        payload = self.asegurar_payload_test_set(self.obtener_plan_actual(), test_set)
+        payload = self.asegurar_payload_test_set(self.obtener_plan_base_comun(), test_set)
         payload["summary"] = self.summary_entry.get().strip()
         payload["repository_path"] = self.repository_entry.get().strip()
         payload["description"] = self.description_text.get("1.0", "end").strip()
+        self.sincronizar_test_sets_comunes()
 
 
     def asegurar_payload_test_set(self, plan, test_set):
@@ -209,8 +210,8 @@ class TestSetDesignPage(BasePage):
             {
                 "summary": f"[{channel}-Global] {service} | {version} | {object_path}",
                 "description": (
-                    f"Agrupa los tests funcionales asociados al objeto {object_path} dentro del plan {plan.get('tipo_nombre', 'Plan')}. "
-                    "Aquí se decide si el set se conserva tal cual, se amplía con más tests o se excluye para este plan."
+                    f"Agrupa los tests funcionales asociados al objeto {object_path}. "
+                    "Aquí se decide si el set se conserva tal cual, se amplía con más tests o se excluye de la base común."
                 ),
                 "repository_path": repository_path
             }
@@ -225,18 +226,39 @@ class TestSetDesignPage(BasePage):
         return self.planning_data.get("plans", [None])[0]
 
 
+    def obtener_plan_base_comun(self):
+        for plan_id in ["integrado", "accepted"]:
+            for plan in self.planning_data.get("plans", []):
+                if plan.get("tipo_id") == plan_id:
+                    return plan
+        return self.obtener_plan_actual()
+
+
     def obtener_test_set_actual(self):
-        plan = self.obtener_plan_actual()
+        plan = self.obtener_plan_base_comun()
         test_sets = plan.get("test_sets", []) if plan else []
         if not test_sets or self.selected_test_set_index >= len(test_sets):
             return None
         return test_sets[self.selected_test_set_index]
 
 
-    def guardar_borrador(self):
+    def sincronizar_test_sets_comunes(self):
+        base_plan = self.obtener_plan_base_comun()
+        if not base_plan:
+            return
+        base_sets = deepcopy(base_plan.get("test_sets", []))
+        for plan in self.planning_data.get("plans", []):
+            if plan is base_plan:
+                continue
+            if plan.get("tipo_id") not in {"integrado", "accepted"}:
+                continue
+            plan["test_sets"] = deepcopy(base_sets)
+
+
+    def volver_a_test_plan(self):
         self.persistir_test_set_actual()
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
-        MessageBox(self, "Se guardó el borrador de Test Sets para este plan.", "success")
+        self.navigate("test_plan_design", crq=self.crq, planning_data=self.planning_data, request_info=self.request_info, response_data=self.response_data)
 
 
     def continuar_a_tests(self):

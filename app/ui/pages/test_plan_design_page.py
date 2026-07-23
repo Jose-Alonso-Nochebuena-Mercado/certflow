@@ -3,7 +3,6 @@ from datetime import datetime
 import customtkinter as ctk
 
 from app.services.planning_service import cargar_planning_crq, guardar_planning_crq
-from app.ui.components.message_box import MessageBox
 from app.ui.pages.base_page import BasePage
 from app.ui.theme.colors import BACKGROUND, BORDER, PRIMARY, PRIMARY_LIGHT, PRIMARY_SOFT, SURFACE, SURFACE_ALT, TEXT_MUTED, TEXT_PRIMARY, TEXT_SECONDARY
 from app.ui.theme.dimensions import PAGE_HORIZONTAL_PADDING
@@ -60,7 +59,7 @@ class TestPlanDesignPage(BasePage):
             hero,
             text=(
                 f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · "
-                "Primero define la información del Test Plan. Después pasarás a revisar y ajustar los Test Sets por plan."
+                "Aquí solo defines la información del Test Plan. Después pasarás a revisar la base común de Test Sets y luego los Tests."
             ),
             font=get_font(BODY),
             text_color=TEXT_SECONDARY,
@@ -102,7 +101,7 @@ class TestPlanDesignPage(BasePage):
 
         self.info_card = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
         self.info_card.pack(fill="x", pady=(0, 12))
-        self.info_title = ctk.CTkLabel(self.info_card, text="Test Sets asociados", font=get_font(SUBTITLE), text_color=PRIMARY)
+        self.info_title = ctk.CTkLabel(self.info_card, text="Base común de Test Sets", font=get_font(SUBTITLE), text_color=PRIMARY)
         self.info_title.pack(anchor="w", padx=22, pady=(18, 6))
         self.info_text = ctk.CTkLabel(self.info_card, text="-", font=get_font(BODY), text_color=TEXT_PRIMARY, justify="left", wraplength=860)
         self.info_text.pack(anchor="w", padx=22, pady=(0, 18))
@@ -111,7 +110,6 @@ class TestPlanDesignPage(BasePage):
         footer.pack(fill="x", pady=(0, 8))
 
         ctk.CTkButton(footer, text="Volver a añadir tests", width=180, height=40, corner_radius=20, command=lambda: self.navigate("add_tests", crq=self.crq), **SECONDARY_BUTTON).pack(side="right")
-        ctk.CTkButton(footer, text="Guardar Test Plan", width=170, height=40, corner_radius=20, fg_color=PRIMARY, hover_color=PRIMARY_LIGHT, command=self.guardar_borrador).pack(side="right", padx=(0, 10))
         ctk.CTkButton(footer, text="Continuar a Test Sets", width=190, height=40, corner_radius=20, fg_color=PRIMARY_SOFT, hover_color=PRIMARY_LIGHT, text_color=PRIMARY, border_width=1, border_color=BORDER, command=self.continuar_a_test_sets).pack(side="right", padx=(0, 10))
 
 
@@ -140,7 +138,7 @@ class TestPlanDesignPage(BasePage):
             widget.destroy()
 
         ctk.CTkLabel(self.navigation_panel, text="Planes del CRQ", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
-        ctk.CTkLabel(self.navigation_panel, text="Integrado va primero. Aceptación puede partir de la misma base y luego diferir si hace falta.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
+        ctk.CTkLabel(self.navigation_panel, text="Integrado va primero. Aquí solo capturas datos del plan; los Test Sets y Tests se ajustan como base común en los siguientes pasos.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
 
         for index, plan in enumerate(self.planning_data.get("plans", [])):
             card = ctk.CTkFrame(self.navigation_panel, fg_color=PRIMARY_SOFT if index == self.selected_plan_index else SURFACE_ALT, corner_radius=14, border_width=1, border_color=BORDER)
@@ -176,7 +174,7 @@ class TestPlanDesignPage(BasePage):
         self.reemplazar_entry(self.end_entry, payload.get("end_date", ""))
         self.reemplazar_texto(self.description_text, payload.get("description", ""))
 
-        test_sets = [test_set.get("nombre", test_set.get("path", "General")) for test_set in plan.get("test_sets", []) if test_set.get("enabled", True)]
+        test_sets = self.obtener_nombres_test_sets_comunes()
         detalle = "\n".join(f"- {nombre}" for nombre in test_sets[:10]) or "No hay Test Sets activos todavía."
         if len(test_sets) > 10:
             detalle += f"\n... y {len(test_sets) - 10} más"
@@ -235,12 +233,6 @@ class TestPlanDesignPage(BasePage):
         return planes[self.selected_plan_index]
 
 
-    def guardar_borrador(self):
-        self.persistir_plan_actual()
-        guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
-        MessageBox(self, "Se guardó el borrador del Test Plan actual.", "success")
-
-
     def continuar_a_test_sets(self):
         self.persistir_plan_actual()
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
@@ -259,3 +251,22 @@ class TestPlanDesignPage(BasePage):
     def reemplazar_texto(self, textbox, value):
         textbox.delete("1.0", "end")
         textbox.insert("1.0", value or "")
+
+
+    def obtener_nombres_test_sets_comunes(self):
+        for plan_id in ["integrado", "accepted"]:
+            indice = self.obtener_indice_plan(plan_id)
+            if indice is None:
+                continue
+            plan = self.planning_data.get("plans", [])[indice]
+            return [
+                test_set.get("nombre", test_set.get("path", "General"))
+                for test_set in plan.get("test_sets", [])
+                if test_set.get("enabled", True)
+            ]
+        plan = self.obtener_plan_actual() or {}
+        return [
+            test_set.get("nombre", test_set.get("path", "General"))
+            for test_set in plan.get("test_sets", [])
+            if test_set.get("enabled", True)
+        ]
