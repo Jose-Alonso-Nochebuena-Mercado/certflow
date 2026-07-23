@@ -2192,7 +2192,7 @@ class AddTestsPage(BasePage):
         )
 
         self.navigate(
-            "test_design",
+            "test_plan_design",
             crq=self.crq,
             planning_data=planning_data,
             request_info=self.request_info,
