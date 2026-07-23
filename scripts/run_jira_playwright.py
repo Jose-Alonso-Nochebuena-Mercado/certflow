@@ -344,6 +344,97 @@ def buscar_por_selectores(page, selectors):
     return None
 
 
+def buscar_visible_por_selectores(page, selectors):
+
+    for selector in selectors or []:
+
+        try:
+
+            locator = page.locator(
+                selector
+            )
+            total = min(
+                locator.count(),
+                10
+            )
+
+            for indice in range(total):
+
+                candidato = locator.nth(
+                    indice
+                )
+
+                if locator_es_visible(
+                    candidato
+                ):
+
+                    return candidato
+
+        except Exception:
+
+            continue
+
+    return None
+
+
+def expandir_selectores_issue_picker(selectors):
+
+    candidatos = []
+    vistos = set()
+
+    for selector in selectors or []:
+
+        variantes = [
+            selector
+        ]
+        match = re.search(
+            r"(customfield_\d+)",
+            str(selector or "")
+        )
+
+        if match:
+
+            base = match.group(1)
+            variantes.extend(
+                [
+                    f"#{base}",
+                    f"#{base}-field",
+                    f"#{base}-textarea",
+                    f"input[id='{base}']",
+                    f"textarea[id='{base}']",
+                    f"input[name='{base}']",
+                    f"textarea[name='{base}']",
+                    f"input[id^='{base}']",
+                    f"textarea[id^='{base}']",
+                    f"input[name^='{base}']",
+                    f"textarea[name^='{base}']",
+                    f"[id^='{base}'][role='combobox']",
+                    f"[name^='{base}'][role='combobox']",
+                    f"[data-field-id='{base}'] input",
+                    f"[data-field-id='{base}'] textarea",
+                    f"[data-field-id='{base}'] [role='combobox']",
+                    f"[aria-controls*='{base}']"
+                ]
+            )
+
+        for variante in variantes:
+
+            limpio = str(
+                variante or ""
+            ).strip()
+
+            if limpio and limpio not in vistos:
+
+                vistos.add(
+                    limpio
+                )
+                candidatos.append(
+                    limpio
+                )
+
+    return candidatos
+
+
 
 def buscar_combo(page, labels):
 
@@ -887,23 +978,34 @@ def completar_multi_issue_picker(
 
         return False
 
-    locator = None
-
-    if selectors:
-
-        locator = buscar_por_selectores(
-            page,
+    locator = buscar_visible_por_selectores(
+        page,
+        expandir_selectores_issue_picker(
             selectors
         )
+    )
 
     if locator is None and labels:
 
-        locator = buscar_por_labels(
+        locator = buscar_combo(
             page,
             labels
         )
 
-    if locator is None or not locator_es_visible(locator):
+    if locator is None and labels:
+
+        candidato_label = buscar_por_labels(
+            page,
+            labels
+        )
+
+        if candidato_label is not None and locator_es_visible(
+            candidato_label
+        ):
+
+            locator = candidato_label
+
+    if locator is None:
 
         print(f"SKIP picker -> {log_name}")
         return False

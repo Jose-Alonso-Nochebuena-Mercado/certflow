@@ -105,6 +105,10 @@ def lock_automation_obsoleto():
 
         return True
 
+    lock_expirado = datetime.now() - creado > timedelta(
+        minutes=LOCK_MAX_AGE_MINUTES
+    )
+
     try:
 
         os.kill(
@@ -117,9 +121,9 @@ def lock_automation_obsoleto():
 
         return True
 
-    return datetime.now() - creado > timedelta(
-        minutes=LOCK_MAX_AGE_MINUTES
-    )
+    except Exception:
+
+        return lock_expirado
 
 
 def limpiar_lock_obsoleto():
