@@ -36,6 +36,7 @@ class TestExecutionPage(BasePage):
         self.current_result = None
         self.screenshot_dir = None
         self.bruno_logo = None
+        self.collection_node_labels = []
         super().__init__(parent, app)
 
 
@@ -94,30 +95,47 @@ class TestExecutionPage(BasePage):
 
         self.capture_surface = ctk.CTkFrame(self.workspace, fg_color="#1E1E1E", corner_radius=14, border_width=1, border_color="#2C2C2C")
         self.capture_surface.pack(fill="both", expand=True, pady=(0, 12))
+        self.capture_surface.grid_columnconfigure(0, weight=0)
+        self.capture_surface.grid_columnconfigure(1, weight=1)
+        self.capture_surface.grid_rowconfigure(0, weight=1)
 
-        bruno_header = ctk.CTkFrame(self.capture_surface, fg_color="#202020", corner_radius=0)
+        self.collection_sidebar = ctk.CTkFrame(self.capture_surface, fg_color="#171717", corner_radius=0, width=250)
+        self.collection_sidebar.grid(row=0, column=0, sticky="nsw")
+        self.collection_sidebar.grid_propagate(False)
+        ctk.CTkLabel(self.collection_sidebar, text="Collections", font=("Arial", 14, "bold"), text_color="#ECECEC").pack(anchor="w", padx=16, pady=(16, 6))
+        self.collection_hint = ctk.CTkLabel(self.collection_sidebar, text="Path Bruno activo", font=("Arial", 11), text_color="#9A9A9A")
+        self.collection_hint.pack(anchor="w", padx=16, pady=(0, 10))
+        self.collection_tree = ctk.CTkFrame(self.collection_sidebar, fg_color="transparent")
+        self.collection_tree.pack(fill="both", expand=True, padx=10, pady=(0, 12))
+
+        self.bruno_stage = ctk.CTkFrame(self.capture_surface, fg_color="#1E1E1E", corner_radius=0)
+        self.bruno_stage.grid(row=0, column=1, sticky="nsew")
+
+        bruno_header = ctk.CTkFrame(self.bruno_stage, fg_color="#202020", corner_radius=0)
         bruno_header.pack(fill="x", padx=0, pady=0)
         brand = ctk.CTkFrame(bruno_header, fg_color="transparent")
         brand.pack(side="left", padx=14, pady=10)
         self.bruno_logo_label = ctk.CTkLabel(brand, text="")
         self.bruno_logo_label.pack(side="left", padx=(0, 8))
         ctk.CTkLabel(brand, text="Bruno", font=("Arial", 18, "bold"), text_color="#F5F5F5").pack(side="left")
-        ctk.CTkLabel(bruno_header, text="Production", font=("Arial", 12, "bold"), text_color="#F6B13D", fg_color="#2A241A", corner_radius=12, padx=12, pady=6).pack(side="right", padx=14)
+        self.environment_badge = ctk.CTkLabel(bruno_header, text="Production", font=("Arial", 12, "bold"), text_color="#F6B13D", fg_color="#2A241A", corner_radius=12, padx=12, pady=6)
+        self.environment_badge.pack(side="right", padx=14)
 
-        toolbar = ctk.CTkFrame(self.capture_surface, fg_color="#262626", corner_radius=0)
+        toolbar = ctk.CTkFrame(self.bruno_stage, fg_color="#262626", corner_radius=0)
         toolbar.pack(fill="x")
-        ctk.CTkLabel(toolbar, text="JsonPlaceholder", font=("Arial", 15, "bold"), text_color="#F5F5F5").pack(side="left", padx=14, pady=10)
+        self.transaction_title_label = ctk.CTkLabel(toolbar, text="Transacción", font=("Arial", 15, "bold"), text_color="#F5F5F5")
+        self.transaction_title_label.pack(side="left", padx=14, pady=10)
         self.tab_label = ctk.CTkLabel(toolbar, text="POST Runner", font=("Arial", 12, "bold"), text_color="#E0E0E0", fg_color="#343434", corner_radius=8, padx=12, pady=6)
         self.tab_label.pack(side="left", padx=(6, 0))
 
-        self.request_line = ctk.CTkFrame(self.capture_surface, fg_color="#303030", corner_radius=0)
+        self.request_line = ctk.CTkFrame(self.bruno_stage, fg_color="#303030", corner_radius=0)
         self.request_line.pack(fill="x", padx=14, pady=(12, 10))
         self.method_label = ctk.CTkLabel(self.request_line, text="POST", font=("Arial", 12, "bold"), text_color="#F0F0F0", fg_color="#3A3A3A", corner_radius=10, padx=10, pady=6)
         self.method_label.pack(side="left", padx=(10, 8), pady=8)
         self.url_label = ctk.CTkLabel(self.request_line, text="-", font=("Consolas", 12), text_color="#8AE234", anchor="w")
         self.url_label.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
-        bruno_content = ctk.CTkFrame(self.capture_surface, fg_color="transparent")
+        bruno_content = ctk.CTkFrame(self.bruno_stage, fg_color="transparent")
         bruno_content.pack(fill="both", expand=True, padx=14, pady=(0, 14))
         bruno_content.grid_columnconfigure(0, weight=1, uniform="bruno")
         bruno_content.grid_columnconfigure(1, weight=1, uniform="bruno")
@@ -125,6 +143,7 @@ class TestExecutionPage(BasePage):
         self.response_text = self.crear_bruno_panel(bruno_content, 1, "Response", "JSON", ACCENT_SOFT, 390, False)
 
         self.cargar_logo_bruno()
+        self.render_collection_sidebar()
 
         bottom = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
         bottom.pack(fill="both", expand=True, pady=(0, 12))
@@ -229,13 +248,12 @@ class TestExecutionPage(BasePage):
             return
         case = entry["case"]
         body = case.get("body_template", self.base_body_template) or self.base_body_template
-        body = self.aplicar_request_value(body, entry["response_field_path"], case.get("request_value", ""))
         self.summary_title.configure(text=case.get("case_name", "Caso"))
         self.summary_text.configure(text=f"Campo objetivo: {entry['response_field_path']}\nCondición: {case.get('comparison_operator', '-')}\nRequest value: {case.get('request_value', '-')}")
         self.tab_label.configure(text=f"{entry['plan'].get('tipo_nombre', 'Plan')} · {case.get('case_name', 'Runner')}")
         self.reemplazar_texto(self.request_text, body, True)
         self.reemplazar_texto(self.response_text, "Esperando ejecución...", False)
-        self.actualizar_request_metadata()
+        self.actualizar_bruno_contexto_visual(entry)
 
 
     def ejecutar_actual(self):
@@ -295,11 +313,8 @@ class TestExecutionPage(BasePage):
         output_path = output_dir / f"{nombre}.png"
         self.update_idletasks()
         self.update()
-        x = self.capture_surface.winfo_rootx()
-        y = self.capture_surface.winfo_rooty()
-        width = self.capture_surface.winfo_width()
-        height = self.capture_surface.winfo_height()
-        image = ImageGrab.grab(bbox=(x, y, x + width, y + height))
+        bbox = self.obtener_capture_bbox()
+        image = ImageGrab.grab(bbox=bbox)
         image.save(output_path)
         return output_path
 
@@ -386,7 +401,7 @@ class TestExecutionPage(BasePage):
             self.response_text.configure(state="disabled")
 
 
-    def actualizar_request_metadata(self):
+    def actualizar_bruno_contexto_visual(self, entry):
         bruno_request = dict(self.request_info.get("bruno_request", {}))
         try:
             definition = parsear_archivo_bru(Path(str(bruno_request.get("file", "")).strip()))
@@ -395,6 +410,9 @@ class TestExecutionPage(BasePage):
         except Exception:
             self.method_label.configure(text="POST")
             self.url_label.configure(text="-")
+        self.transaction_title_label.configure(text=str(self.request_info.get("transaction_name", "Transacción")).strip() or "Transacción")
+        self.environment_badge.configure(text=self.obtener_environment_label(entry))
+        self.render_collection_sidebar()
 
 
     def cargar_logo_bruno(self):
@@ -409,6 +427,85 @@ class TestExecutionPage(BasePage):
             self.bruno_logo_label.configure(image=self.bruno_logo)
         except Exception:
             pass
+
+
+    def render_collection_sidebar(self):
+        for widget in self.collection_tree.winfo_children():
+            widget.destroy()
+
+        segments = self.obtener_collection_segments()
+        if not segments:
+            ctk.CTkLabel(self.collection_tree, text="Sin colección Bruno asociada", font=("Arial", 11), text_color="#8C8C8C").pack(anchor="w", padx=8, pady=(4, 0))
+            return
+
+        for index, segment in enumerate(segments):
+            is_last = index == len(segments) - 1
+            prefix = "▾" if index == 0 else ("└" if is_last else "├")
+            text_color = "#F5F5F5" if is_last else "#B8B8B8"
+            fg_color = "#2A2A2A" if is_last else "transparent"
+            label = ctk.CTkLabel(
+                self.collection_tree,
+                text=f"{prefix} {segment}",
+                font=("Consolas", 11, "bold" if is_last else "normal"),
+                text_color=text_color,
+                fg_color=fg_color,
+                corner_radius=8,
+                anchor="w",
+                padx=8,
+                pady=6
+            )
+            label.pack(fill="x", padx=6, pady=(0, 4))
+
+        libraries = list(self.request_info.get("transaction_libraries", []))
+        if libraries:
+            ctk.CTkLabel(self.collection_tree, text="Libraries", font=("Arial", 11, "bold"), text_color="#9A9A9A").pack(anchor="w", padx=8, pady=(10, 4))
+            for library in libraries:
+                ctk.CTkLabel(self.collection_tree, text=f"• {library}", font=("Consolas", 10), text_color="#B8B8B8", anchor="w").pack(fill="x", padx=10, pady=(0, 2))
+
+
+    def obtener_collection_segments(self):
+        bruno_request = dict(self.request_info.get("bruno_request", {}))
+        logical_path = str(bruno_request.get("logical_path", "")).strip()
+        if logical_path:
+            return [segment for segment in logical_path.split("/") if segment]
+
+        segments = []
+        collection = str(bruno_request.get("collection", "")).strip()
+        folder = str(bruno_request.get("folder", "")).strip()
+        request = str(bruno_request.get("request", "")).strip()
+        if collection:
+            segments.append(collection)
+        if folder:
+            segments.extend([segment for segment in folder.split("/") if segment])
+        if request:
+            segments.append(request)
+        return segments
+
+
+    def obtener_environment_label(self, entry):
+        payload = dict(entry.get("plan", {}).get("issue_payload", {}))
+        return str(payload.get("environment_label", "Production")).strip() or "Production"
+
+
+    def obtener_capture_bbox(self):
+        scale = self.obtener_escala_pantalla()
+        x = self.capture_surface.winfo_rootx()
+        y = self.capture_surface.winfo_rooty()
+        width = self.capture_surface.winfo_width()
+        height = self.capture_surface.winfo_height()
+        return (
+            int(x * scale),
+            int(y * scale),
+            int((x + width) * scale),
+            int((y + height) * scale)
+        )
+
+
+    def obtener_escala_pantalla(self):
+        try:
+            return max(1.0, float(self.winfo_fpixels("1i")) / 72.0)
+        except Exception:
+            return 1.0
 
 
     def es_test_set_plan_specific(self, test_set):
@@ -513,8 +610,10 @@ class TestExecutionPage(BasePage):
     def centrar_linea_texto(self, textbox, line_number):
         try:
             total_lines = max(1, int(textbox.index("end-1c").split(".")[0]))
-            target = max(0, line_number - 8)
+            visible_lines = max(1, int(textbox.winfo_height() / 20))
+            target = max(0, line_number - (visible_lines // 2))
             textbox.yview_moveto(min(1.0, target / total_lines))
+            textbox.see(f"{line_number}.0")
         except Exception:
             try:
                 textbox.see(f"{line_number}.0")

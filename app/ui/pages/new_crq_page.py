@@ -37,6 +37,7 @@ from app.ui.theme.styles import (
 
 from app.services.crq_service import (
     contiene_caracteres_invalidos_crq,
+    cargar_crqs,
     guardar_crq,
     existe_crq
 )
@@ -57,6 +58,7 @@ class NewCRQPage(BasePage):
 
         self.portafolios = obtener_portafolios()
         self.tipos = obtener_typology()
+        self.channel_options = self.obtener_valores_canal()
 
         self.configure(
             fg_color=BACKGROUND
@@ -265,10 +267,33 @@ class NewCRQPage(BasePage):
             "Fecha instalación"
         )
 
+        self.channel = self.crear_campo_combo(
+            grid,
+            2,
+            0,
+            "Canal",
+            self.channel_options
+        )
+
+        self.channel.bind(
+            "<FocusOut>",
+            self.on_channel_changed
+        )
+        self.channel.bind(
+            "<Return>",
+            self.on_channel_changed
+        )
+
         if self.portafolios:
 
             self.portafolio.set(
                 self.portafolios[0]
+            )
+
+        if self.channel_options:
+
+            self.channel.set(
+                self.channel_options[0]
             )
 
     def crear_seccion_tipologias(self, parent):
@@ -697,6 +722,7 @@ class NewCRQPage(BasePage):
             sdatool=datos["sdatool"],
             descripcion=datos["descripcion"],
             objetivo_cambio=datos["objetivo_cambio"],
+            channel=datos["channel"],
             portafolio=datos["portafolio"],
             fecha_instalacion=datos["fecha_instalacion"],
             certificaciones=datos["certificaciones"]
@@ -740,6 +766,9 @@ class NewCRQPage(BasePage):
                 "1.0",
                 "end"
             ).strip(),
+            "channel": self.normalizar_canal(
+                self.channel.get()
+            ),
             "portafolio": self.portafolio.get().strip(),
             "fecha_instalacion": self.fecha.get().strip(),
             "certificaciones": self.obtener_certificaciones_seleccionadas()
@@ -778,6 +807,10 @@ class NewCRQPage(BasePage):
         if not datos["objetivo_cambio"]:
 
             return "Debe capturar el objetivo del cambio"
+
+        if not datos["channel"]:
+
+            return "Debe capturar el canal"
 
         if not datos["fecha_instalacion"]:
 
@@ -825,3 +858,57 @@ class NewCRQPage(BasePage):
         except ValueError:
 
             return False
+
+
+    def obtener_valores_canal(self):
+
+        sugeridos = [
+            "GLOBAL",
+            "GLOMO"
+        ]
+
+        crqs = cargar_crqs()
+
+        for data in crqs.values():
+
+            channel = self.normalizar_canal(
+                data.get("channel", "")
+            )
+
+            if channel and channel not in sugeridos:
+
+                sugeridos.append(channel)
+
+        return sugeridos
+
+
+    def normalizar_canal(self, value):
+
+        return str(
+            value or ""
+        ).strip().upper()
+
+
+    def on_channel_changed(self, _event=None):
+
+        channel = self.normalizar_canal(
+            self.channel.get()
+        )
+
+        if not channel:
+
+            return
+
+        if channel not in self.channel_options:
+
+            self.channel_options.append(
+                channel
+            )
+
+            self.channel.configure(
+                values=self.channel_options
+            )
+
+        self.channel.set(
+            channel
+        )

@@ -491,7 +491,7 @@ class TestCaseDesignPage(BasePage):
     def asegurar_payload_test(self, entry):
         test_set = entry["test_set"]
         test = entry["test"]
-        channel = str(self.request_info.get("transaction_channel", "GENERAL")).strip().upper() or "GENERAL"
+        channel = str(self.request_info.get("transaction_channel") or self.crq.get("channel") or "GLOBAL").strip().upper() or "GLOBAL"
         service = str(self.request_info.get("service_name", "Servicio")).strip() or "Servicio"
         version = str(self.request_info.get("version_label", "Sin versión")).strip() or "Sin versión"
         object_path = self.formatear_path(test_set.get("path", "General"))

@@ -144,8 +144,8 @@ def obtener_estrategia_plan(
     if certificacion == "integrado":
 
         return (
-            "Base principal de pruebas de afectación. "
-            "Aquí se seleccionan y ajustan los test sets y tests requeridos."
+            "Plan de pruebas de afectación. "
+            "Incluye los test sets y tests definidos para la certificación."
         )
 
     if certificacion == "accepted":

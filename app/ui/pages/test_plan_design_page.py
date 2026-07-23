@@ -59,7 +59,7 @@ class TestPlanDesignPage(BasePage):
             hero,
             text=(
                 f"CRQ activo: {self.crq.get('crq', 'Sin seleccionar')} · "
-                "Aquí solo defines la información del Test Plan. Después pasarás a revisar la base común de Test Sets y luego los Tests."
+                "Aquí defines la información del Test Plan y la etiqueta de ambiente que verás en la vista Bruno de este plan."
             ),
             font=get_font(BODY),
             text_color=TEXT_SECONDARY,
@@ -97,11 +97,12 @@ class TestPlanDesignPage(BasePage):
         self.typology_entry = self.crear_field_entry(form, 0, 1, "Typology")
         self.begin_entry = self.crear_field_entry(form, 1, 0, "Begin date")
         self.end_entry = self.crear_field_entry(form, 1, 1, "End date")
-        self.description_text = self.crear_textbox(form, 2, "Description", height=140)
+        self.environment_entry = self.crear_field_entry(form, 2, 0, "Bruno environment label")
+        self.description_text = self.crear_textbox(form, 3, "Description", height=140)
 
         self.info_card = ctk.CTkFrame(self.workspace, **SOFT_CARD_STYLE)
         self.info_card.pack(fill="x", pady=(0, 12))
-        self.info_title = ctk.CTkLabel(self.info_card, text="Base común de Test Sets", font=get_font(SUBTITLE), text_color=PRIMARY)
+        self.info_title = ctk.CTkLabel(self.info_card, text="Test Sets del plan", font=get_font(SUBTITLE), text_color=PRIMARY)
         self.info_title.pack(anchor="w", padx=22, pady=(18, 6))
         self.info_text = ctk.CTkLabel(self.info_card, text="-", font=get_font(BODY), text_color=TEXT_PRIMARY, justify="left", wraplength=860)
         self.info_text.pack(anchor="w", padx=22, pady=(0, 18))
@@ -138,7 +139,7 @@ class TestPlanDesignPage(BasePage):
             widget.destroy()
 
         ctk.CTkLabel(self.navigation_panel, text="Planes del CRQ", font=get_font(SUBTITLE), text_color=PRIMARY).pack(anchor="w", padx=16, pady=(16, 4))
-        ctk.CTkLabel(self.navigation_panel, text="Integrado va primero. Aquí solo capturas datos del plan; los Test Sets y Tests se ajustan como base común en los siguientes pasos.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
+        ctk.CTkLabel(self.navigation_panel, text="Integrado va primero. Aquí capturas datos del plan y su ambiente; los Test Sets y Tests se ajustan en los siguientes pasos.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
 
         for index, plan in enumerate(self.planning_data.get("plans", [])):
             card = ctk.CTkFrame(self.navigation_panel, fg_color=PRIMARY_SOFT if index == self.selected_plan_index else SURFACE_ALT, corner_radius=14, border_width=1, border_color=BORDER)
@@ -172,6 +173,7 @@ class TestPlanDesignPage(BasePage):
         self.reemplazar_entry(self.typology_entry, payload.get("typology_name", ""))
         self.reemplazar_entry(self.begin_entry, payload.get("begin_date", ""))
         self.reemplazar_entry(self.end_entry, payload.get("end_date", ""))
+        self.reemplazar_entry(self.environment_entry, payload.get("environment_label", ""))
         self.reemplazar_texto(self.description_text, payload.get("description", ""))
 
         test_sets = self.obtener_nombres_test_sets_comunes()
@@ -190,6 +192,7 @@ class TestPlanDesignPage(BasePage):
         payload["typology_name"] = self.typology_entry.get().strip()
         payload["begin_date"] = self.begin_entry.get().strip()
         payload["end_date"] = self.end_entry.get().strip()
+        payload["environment_label"] = self.environment_entry.get().strip()
         payload["description"] = self.description_text.get("1.0", "end").strip()
 
 
@@ -208,6 +211,7 @@ class TestPlanDesignPage(BasePage):
                     f"Objetivo del cambio: {objetivo}. Estrategia inicial: {plan.get('estrategia', '-') }"
                 ),
                 "typology_name": TYPOLOGY_NAME_BY_PLAN_ID.get(plan.get("tipo_id", ""), plan.get("tipo_nombre", "")),
+                "environment_label": "Production",
                 "begin_date": today,
                 "end_date": today
             }
