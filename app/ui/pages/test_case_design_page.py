@@ -552,6 +552,23 @@ class TestCaseDesignPage(BasePage):
 
     def finalizar(self):
         self.persistir_test_actual(True)
+        planned_counts = self.contar_elementos_planificados()
+        automation_state = self.leer_estado_automatizacion_actual()
+
+        if automation_state.get("has_locked_structure"):
+            MessageBox(
+                self,
+                (
+                    "Ya existe una ejecución previa para este CRQ con estructura creada en Jira/Xray.\n\n"
+                    f"Diseño actual detectado: {planned_counts['tests']} tests, {planned_counts['test_sets']} test sets, {planned_counts['test_plans']} test plans.\n"
+                    f"Estado creado previamente: {automation_state['tests']} tests, {automation_state['test_sets']} test sets, {automation_state['test_plans']} test plans.\n\n"
+                    "El flujo actual sí crea múltiples tests por caso, pero todavía no actualiza Test Sets/Test Plans ya existentes para agregar nuevos tests o modificar asociaciones. "
+                    "Primero termina todos los casos antes de la primera corrida o usa un CRQ/estado nuevo para una nueva creación."
+                ),
+                "warning"
+            )
+            return
+
         try:
             payload = construir_payload_planning_desde_crq(
                 self.crq,
@@ -571,6 +588,72 @@ class TestCaseDesignPage(BasePage):
 
         guardar_planning_crq(self.crq.get("crq", ""), self.planning_data)
         self.navigate("crq_detail", crq=self.crq)
+
+
+    def contar_elementos_planificados(self):
+        test_sets = 0
+        tests = 0
+        test_plans = 0
+
+        base_plan = self.obtener_plan_base_comun()
+
+        if base_plan:
+            for test_set in base_plan.get("test_sets", []):
+                if not test_set.get("enabled", True):
+                    continue
+                test_sets += 1
+                for test in test_set.get("tests", []):
+                    field_name = str(test.get("field", "")).strip()
+                    if not field_name:
+                        continue
+                    draft_cases = list(test.get("draft_cases", [])) or [None]
+                    tests += len(draft_cases)
+
+        for plan in self.planning_data.get("plans", []):
+            test_plans += 1
+
+        return {
+            "tests": tests,
+            "test_sets": test_sets,
+            "test_plans": test_plans
+        }
+
+
+    def leer_estado_automatizacion_actual(self):
+        automation = dict(self.planning_data.get("automation") or {})
+        state_path = str(automation.get("state_path", "")).strip()
+
+        resumen = {
+            "tests": 0,
+            "test_sets": 0,
+            "test_plans": 0,
+            "has_locked_structure": False
+        }
+
+        if not state_path:
+            return resumen
+
+        path = Path(state_path)
+        if not path.exists():
+            return resumen
+
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return resumen
+
+        for item in dict(state.get("completed", {})).values():
+            item_type = str(item.get("type", "")).strip()
+            if item_type == "Test":
+                resumen["tests"] += 1
+            elif item_type == "Test Set":
+                resumen["test_sets"] += 1
+                resumen["has_locked_structure"] = True
+            elif item_type == "Test Plan":
+                resumen["test_plans"] += 1
+                resumen["has_locked_structure"] = True
+
+        return resumen
 
 
     def obtener_test_actual(self):

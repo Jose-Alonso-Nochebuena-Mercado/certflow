@@ -29,6 +29,9 @@ from app.services.crq_service import (
     listar_crqs,
     eliminar_crq as eliminar_crq_service
 )
+from app.services.planning_service import (
+    resetear_datos_locales_test_planning
+)
 
 from app.ui.components.crq_card import (
     CRQCard
@@ -99,6 +102,22 @@ class HomePage(BasePage):
         )
 
         left_slot.grid_propagate(False)
+
+        reset_button = ctk.CTkButton(
+            left_slot,
+            text="Reset local",
+            width=120,
+            height=40,
+            corner_radius=20,
+            fg_color="#F6E6B4",
+            hover_color="#E8D58E",
+            text_color="#6B5200",
+            command=self.confirmar_reset_local
+        )
+
+        reset_button.pack(
+            side="left"
+        )
 
         hero = ctk.CTkFrame(
             top_section,
@@ -323,6 +342,27 @@ class HomePage(BasePage):
             "test_execution",
             crq=crq
         )
+
+
+    def confirmar_reset_local(self):
+
+        ConfirmDialog(
+            self,
+            "Reset local",
+            "¿Desea borrar el planning local, los tests diseñados y los estados de automatización guardados? No elimina CRQs ni borra nada en Jira.",
+            self.ejecutar_reset_local
+        )
+
+
+    def ejecutar_reset_local(self):
+
+        resetear_datos_locales_test_planning()
+        MessageBox(
+            self,
+            "Se borraron los datos locales de planning y automatización. Los CRQ siguen registrados y Jira/Xray no fue modificado.",
+            "success"
+        )
+        self.recargar_crqs()
 
 
 
