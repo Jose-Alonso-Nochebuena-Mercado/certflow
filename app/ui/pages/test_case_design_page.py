@@ -206,8 +206,15 @@ class TestCaseDesignPage(BasePage):
     def enlazar_eventos(self):
         for entry in [self.case_name_entry, self.request_value_entry, self.actual_value_entry]:
             entry.bind("<KeyRelease>", lambda _event: self.on_editor_changed())
-        self.body_template_text.bind("<KeyRelease>", lambda _event: self.on_editor_changed())
+        self.body_template_text.bind("<KeyRelease>", self.on_body_template_changed)
+        self.body_template_text.bind("<<Paste>>", self.on_body_template_changed)
+        self.body_template_text.bind("<<Cut>>", self.on_body_template_changed)
         self.action_text.bind("<KeyRelease>", lambda _event: self.persistir_test_actual(False))
+
+
+    def on_body_template_changed(self, _event=None):
+        self.persistir_test_actual(False)
+        self.programar_refresh_response()
 
 
     def construir_test_entries(self):
@@ -238,7 +245,7 @@ class TestCaseDesignPage(BasePage):
         ctk.CTkLabel(self.navigation_panel, text="Cada fila representa un campo dentro de un Test Set activo del plan actual. Los sets comunes se sincronizan; los extras se quedan en su plan.", font=get_font(SMALL), text_color=TEXT_SECONDARY, justify="left", wraplength=260).pack(anchor="w", padx=16, pady=(0, 12))
 
         if not self.test_entries:
-            ctk.CTkLabel(self.navigation_panel, text="No hay tests disponibles en la base común. Regresa a Test Sets y activa al menos un set con campos.", font=get_font(BODY), text_color=TEXT_MUTED, wraplength=260, justify="left").pack(anchor="w", padx=16, pady=(0, 16))
+            ctk.CTkLabel(self.navigation_panel, text="No hay tests disponibles. Regresa a Test Sets y activa al menos un set con campos.", font=get_font(BODY), text_color=TEXT_MUTED, wraplength=260, justify="left").pack(anchor="w", padx=16, pady=(0, 16))
             return
 
         for index, entry in enumerate(self.test_entries):
@@ -415,7 +422,7 @@ class TestCaseDesignPage(BasePage):
                 self.after_cancel(self.live_response_job)
             except Exception:
                 pass
-        self.live_response_job = self.after(550, self.ejecutar_refresh_response)
+        self.live_response_job = self.after(2000, self.ejecutar_refresh_response)
 
 
     def ejecutar_refresh_response(self):
@@ -426,11 +433,9 @@ class TestCaseDesignPage(BasePage):
 
         response_path = entry["response_field_path"]
         body_template = self.body_template_text.get("1.0", "end").strip() or self.base_body_template
-        request_value = self.request_value_var.get().strip()
 
         try:
-            body_ejecutable = self.construir_body_preview(body_template, response_path, request_value)
-            resultado = ejecutar_request_bruno_preview(self.request_info, body_override_text=body_ejecutable)
+            resultado = ejecutar_request_bruno_preview(self.request_info, body_override_text=body_template)
             self.live_response_result = resultado
             response_json = resultado.get("response", {})
             target_value = self.obtener_valor_desde_path(response_json, response_path)
@@ -498,7 +503,7 @@ class TestCaseDesignPage(BasePage):
                 "summary": f"[{channel}-Global] {service} | {version} | {object_path} | {field_name} | {case_type} | Global/Esperado",
                 "description": (
                     f"Validación del campo {field_name} en {object_path}. "
-                    f"El escenario base corresponde a una prueba {case_type.lower()} y usa el body Bruno de la request seleccionada como machote funcional."
+                    f"La prueba corresponde al escenario {case_type.lower()} y usa la request Bruno seleccionada como referencia funcional."
                 ),
                 "actions": test.get("actions", ""),
                 "repository_path": self.repository_path_default
